@@ -1,19 +1,9 @@
 //! Representations for dense, multidimensional arrays stored in contiguous memory.
-
-/// Error types for Tensor construction.
-#[derive(Debug)]
-pub enum TensorError {
-    /// Raised in [`Tensor::from_vec`] or [`Tensor::zeros`] if 
-    /// one of a tensor's dimensions is zero.
-    InvalidShape,
-    /// Raised if the tensor shape does not match the 
-    /// shape of the data passed in to [`Tensor::from_vec`].
-    ShapeMismatch
-}
+use std::fmt;
 
 /// Representation for a multidimensional array of numbers.
 ///
-/// Tensors are used as data inputs to ML operations and are 
+/// Tensors are used as data inputs to ML operations and are
 /// the basic datatype for the `tensor-forge` library.
 ///
 /// # Examples
@@ -27,7 +17,7 @@ pub enum TensorError {
 /// assert!(tensor.is_ok());
 /// ```
 ///
-/// Data will be stored in a contiguous array of IEEE 754 double-precision floating-point. 
+/// Data will be stored in a contiguous array of IEEE 754 double-precision floating-point.
 #[derive(Debug)]
 pub struct Tensor {
     shape: Vec<usize>,
@@ -38,7 +28,7 @@ impl Tensor {
     /// Constructs a zero-filled [`Tensor`] of a given shape.
     ///
     /// Use [`Tensor::from_vec`] to construct a tensor with
-    /// data, or fill the tensor after a call to [`Tensor::data_mut`]. 
+    /// data, or fill the tensor after a call to [`Tensor::data_mut`].
     ///
     /// # Errors
     /// - [`TensorError::InvalidShape`] if shape contains a zeroed dimension.
@@ -53,8 +43,8 @@ impl Tensor {
     /// assert_eq!(tensor.unwrap().data(), [0_f64; 4 * 4]);
     /// ```
     ///
-    /// Data will be stored in a contiguous array of IEEE 754 double-precision floating-point. 
-    pub fn zeros(shape: impl Into<Vec<usize>>) -> Result<Tensor, TensorError> { 
+    /// Data will be stored in a contiguous array of IEEE 754 double-precision floating-point.
+    pub fn zeros(shape: impl Into<Vec<usize>>) -> Result<Tensor, TensorError> {
         let shape: Vec<usize> = shape.into();
         let num_elements = shape.iter().product();
         let mut data = Vec::with_capacity(num_elements);
@@ -80,7 +70,7 @@ impl Tensor {
     /// assert!(tensor.is_ok());
     /// ```
     ///
-    /// Tensor data can fit into multiple valid shapes. For example, the above data with 16 total elements can fit into 
+    /// Tensor data can fit into multiple valid shapes. For example, the above data with 16 total elements can fit into
     /// an 8x2, 2x8, 1x16, or 16x1 tensor.
     ///
     /// ```
@@ -101,10 +91,7 @@ impl Tensor {
         if num_elements != data.len() {
             return Err(TensorError::ShapeMismatch);
         }
-        Ok(Tensor {
-            shape,
-            data,
-        })
+        Ok(Tensor { shape, data })
     }
 
     /// Returns the shape of this tensor.
@@ -116,6 +103,7 @@ impl Tensor {
     /// let tensor = Tensor::zeros(shape);
     /// assert_eq!(tensor.unwrap().shape(), vec![4, 4]);
     /// ```
+    #[must_use]
     pub fn shape(&self) -> &[usize] {
         &self.shape
     }
@@ -129,6 +117,7 @@ impl Tensor {
     /// let tensor = Tensor::zeros(shape);
     /// assert_eq!(tensor.unwrap().numel(), 16);  // 4x4 = 16 elements
     /// ```
+    #[must_use]
     pub fn numel(&self) -> usize {
         self.shape.iter().product()
     }
@@ -142,6 +131,7 @@ impl Tensor {
     /// let tensor = Tensor::zeros(shape);
     /// assert_eq!(tensor.unwrap().data(), vec![0_f64; 4 * 4]);
     /// ```
+    #[must_use]
     pub fn data(&self) -> &[f64] {
         &self.data
     }
@@ -157,5 +147,30 @@ impl Tensor {
     /// ```
     pub fn data_mut(&mut self) -> &mut [f64] {
         &mut self.data
+    }
+}
+
+/// Error types for Tensor construction.
+#[derive(Clone, Debug)]
+pub enum TensorError {
+    /// Raised in [`Tensor::from_vec`] or [`Tensor::zeros`] if
+    /// one of a tensor's dimensions is zero.
+    InvalidShape,
+    /// Raised if the tensor shape does not match the
+    /// shape of the data passed in to [`Tensor::from_vec`].
+    ShapeMismatch,
+}
+
+impl fmt::Display for TensorError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TensorError::InvalidShape => write!(
+                f,
+                "Invalid tensor dimensions. Tensor shape must not contain a zero."
+            ),
+            TensorError::ShapeMismatch => {
+                write!(f, "Tensor shape cannot store the size of the data.")
+            }
+        }
     }
 }

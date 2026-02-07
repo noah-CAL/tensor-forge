@@ -1,4 +1,3 @@
-
 use tensor_forge::tensor::{Tensor, TensorError};
 
 #[test]
