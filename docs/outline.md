@@ -79,7 +79,7 @@ Represent dense multidimensional arrays stored in contiguous memory.
 Tensor fields:
 
 `shape: Vec<usize>`  
-`data: Vec<f32>`
+`data: Vec<f64>`
 
 Invariant:
 
@@ -99,9 +99,9 @@ Example memory layout for shape `[2,3]`:
 
 Constructor functions:
 
-`Tensor::zeros(shape: impl Into<Vec<usize>>) -> Tensor`
+`Tensor::from_vec(shape: impl Into<Vec<usize>>, data: Vec<f64>) -> Result<Tensor, Error>`
 
-`Tensor::from_vec(shape: impl Into<Vec<usize>>, data: Vec<f32>) -> Result<Tensor, Error>`
+`Tensor::zeros(shape: impl Into<Vec<usize>>) -> Result<Tensor, Error>`
 
 Inspection:
 
@@ -109,9 +109,9 @@ Inspection:
 
 `Tensor::numel(&self) -> usize`
 
-`Tensor::data(&self) -> &[f32]`
+`Tensor::data(&self) -> &[f64]`
 
-`Tensor::data_mut(&mut self) -> &mut [f32]`
+`Tensor::data_mut(&mut self) -> &mut [f64]`
 
 Validation:
 
@@ -335,10 +335,10 @@ File: `tests/tensor_tests.rs`
 
 Tests:
 
-- [ ] tensor_creation_valid  
-- [ ] tensor_creation_invalid_shape  
-- [ ] tensor_zeros_correct_size  
-- [ ] tensor_numel_correct  
+- [X] tensor_creation_valid  
+- [X] tensor_creation_invalid_shape  
+- [X] tensor_zeros_correct_size  
+- [X] tensor_mutability_test  
 
 ---
 
@@ -393,17 +393,17 @@ Before publishing, verify:
 
 `cargo doc --no-deps`
 
-All must succeed with no warnings.
-
-Stretch goal:
+Additional requirements:
 
 - [ ] Github Actions and README.md buttons that verify the above requirements
+
+- [ ] Code builds with `#![deny(clippy::all)]` and `#![deny(missing_docs)]`
+
+All must succeed with no warnings.
 
 ---
 
 # 13. 3-Day Implementation Plan
-
-Total estimated time: 20 hours
 
 ---
 
@@ -413,27 +413,29 @@ Goal: Complete tensor layer and graph structure
 
 Checklist:
 
-- [ ] Create crate  
+- [X] Create crate  
 
-- [ ] Implement Tensor struct  
+- [X] Implement Tensor struct  
 
-- [ ] Implement Tensor constructors  
+- [X] Write Tensor tests  
 
-- [ ] Implement Tensor validation  
+- [X] Implement Tensor constructors  
+
+- [X] Implement Tensor validation  
+
+- [X] Write Tensor documentation  
 
 - [ ] Implement Node struct  
 
 - [ ] Implement Graph struct  
+
+- [ ] Write Graph tests  
 
 - [ ] Implement Graph input nodes  
 
 - [ ] Implement Graph shape validation  
 
 - [ ] Implement matmul/add/relu graph ops  
-
-- [ ] Write tensor tests  
-
-- [ ] Write graph tests  
 
 Completion criteria:
 
