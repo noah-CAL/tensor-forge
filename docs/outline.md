@@ -1,0 +1,518 @@
+# tensor-forge — Project Specification
+
+A minimal compute graph runtime in Rust for executing tensor operations using a pluggable kernel registry and deterministic execution engine.
+
+This project demonstrates the core architectural components of modern ML runtimes (XLA, PyTorch dispatcher, TensorFlow runtime) in a minimal, readable implementation suitable for systems programming and runtime infrastructure exploration.
+
+---
+
+# 1. Project Objectives
+
+## Primary Goals
+
+Implement a Rust library that provides:
+
+- A dense tensor abstraction  
+- A compute graph intermediate representation (IR)  
+- A kernel abstraction layer  
+- A kernel registry and dispatcher  
+- A deterministic graph execution engine  
+- Shape validation and runtime correctness guarantees  
+
+The system must execute compute graphs such as:
+
+Input → MatMul → Add → ReLU → Output
+
+---
+
+# 2. System Architecture Overview
+
+tensor-forge consists of five primary subsystems:
+
+- Tensor layer  
+- Graph IR layer  
+- Kernel abstraction layer  
+- Kernel registry  
+- Execution engine  
+
+Execution flow:
+
+`User constructs graph → graph validates → executor schedules → kernels execute → outputs produced`
+
+---
+
+# 3. Module Structure
+
+(Tentative) Crate layout:
+
+```
+src/lib.rs  
+src/tensor.rs  
+src/graph.rs  
+src/node.rs  
+src/op.rs  
+src/executor.rs  
+src/kernel.rs  
+src/registry.rs  
+src/error.rs  
+
+tests/tensor_tests.rs  
+tests/kernel_tests.rs  
+tests/graph_tests.rs  
+tests/integration_tests.rs  
+```
+
+---
+
+# 4. Tensor Layer Specification
+
+File: `tensor.rs`
+
+## Responsibilities
+
+Represent dense multidimensional arrays stored in contiguous memory.
+
+---
+
+## Data Structure
+
+Tensor fields:
+
+`shape: Vec<usize>`  
+`data: Vec<f32>`
+
+Invariant:
+
+`product(shape) == data.len()`
+
+Layout:
+
+Row-major contiguous
+
+Example memory layout for shape `[2,3]`:
+
+`[a00, a01, a02, a10, a11, a12]`
+
+---
+
+## Public API
+
+Constructor functions:
+
+`Tensor::zeros(shape: impl Into<Vec<usize>>) -> Tensor`
+
+`Tensor::from_vec(shape: impl Into<Vec<usize>>, data: Vec<f32>) -> Result<Tensor, Error>`
+
+Inspection:
+
+`Tensor::shape(&self) -> &[usize]`
+
+`Tensor::numel(&self) -> usize`
+
+`Tensor::data(&self) -> &[f32]`
+
+`Tensor::data_mut(&mut self) -> &mut [f32]`
+
+Validation:
+
+Must return error if shape does not match data length.
+
+---
+
+# 5. Operator System Specification
+
+File: `op.rs`
+
+Defines supported operations.
+
+Enums:
+
+`pub enum OpKind { Input, MatMul, Add, ReLU }`
+
+This enum represents graph-level operation identity.
+
+---
+
+# 6. Graph IR Specification
+
+Files:
+
+`graph.rs`  
+`node.rs`
+
+---
+
+## Node
+
+Represents one operation instance in graph.
+
+Fields:
+
+`pub struct Node { pub id: NodeId, pub op: OpKind, pub inputs: Vec<NodeId>, pub shape: Vec<usize> }`
+
+NodeId type:
+
+`#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]`
+
+`pub struct NodeId(pub usize);`
+
+---
+
+## Graph
+
+Fields:
+
+`pub struct Graph { nodes: Vec<Node>, inputs: Vec<NodeId>, outputs: Vec<NodeId> }`
+
+Graph must be append-only.
+
+---
+
+## Public API
+
+`Graph::new() -> Graph`
+
+`Graph::input(shape: Vec<usize>) -> NodeId`
+
+`Graph::matmul(lhs: NodeId, rhs: NodeId) -> Result<NodeId, Error>`
+
+`Graph::add(lhs: NodeId, rhs: NodeId) -> Result<NodeId, Error>`
+
+`Graph::relu(input: NodeId) -> Result<NodeId, Error>`
+
+`Graph::set_output(node: NodeId)`
+
+`Graph::node(id: NodeId) -> &Node`
+
+`Graph::nodes() -> &[Node]`
+
+---
+
+## Shape Validation Rules
+
+MatMul rule:
+
+`[A, B] × [B, C] → [A, C]`
+
+Addition rule:
+
+`Shapes must match exactly`
+
+ReLU rule:
+
+`Output shape = input shape`
+
+Graph construction must fail immediately if shapes invalid.
+
+---
+
+# 7. Kernel Abstraction Specification
+
+File: `kernel.rs`
+
+Defines runtime-executable compute kernels.
+
+Traits:
+
+`pub trait Kernel { fn compute(&self, inputs: &[&Tensor], output: &mut Tensor) -> Result<(), Error>; }`
+
+---
+
+## Kernel Implementations
+
+- MatMulKernel
+
+- AddKernel
+
+- ReluKernel
+
+---
+
+# 8. Kernel Registry Specification
+
+File: `registry.rs`
+
+Responsible for mapping OpKind → Kernel.
+
+Data structure:
+
+`pub struct KernelRegistry { kernels: HashMap<OpKind, Box<dyn Kernel>> }`
+
+---
+
+## API
+
+`KernelRegistry::new() -> KernelRegistry`
+
+`KernelRegistry::register(op: OpKind, kernel: Box<dyn Kernel>)`
+
+`KernelRegistry::get(op: OpKind) -> Option<&dyn Kernel>`
+
+---
+
+## Default Registry
+
+Must register:
+
+- MatMulKernel  
+- AddKernel  
+- ReluKernel  
+
+`KernelRegistry::default()`
+
+---
+
+# 9. Execution Engine Specification
+
+File: `executor.rs`
+
+Responsible for executing graphs.
+
+Executor fields:
+
+`pub struct Executor { registry: KernelRegistry }`
+
+---
+
+## Execution Algorithm
+
+Input:
+
+- Graph  
+- Input tensors  
+
+Steps:
+
+1. Allocate tensor storage for every node  
+2. Assign input tensors  
+3. Execute nodes in graph order  
+4. For each node:  
+
+   - Fetch kernel  
+   - Fetch input tensors  
+   - Allocate output tensor  
+   - Call kernel.compute  
+
+5. Return outputs  
+
+Execution order:
+
+Nodes execute in insertion order.
+
+---
+
+## API
+
+`Executor::new(registry: KernelRegistry) -> Executor`
+
+`Executor::execute(&self, graph: &Graph, inputs: &[Tensor]) -> Result<Vec<Tensor>, Error>`
+
+---
+
+# 10. Error Handling Specification
+
+File: `error.rs`
+
+Define:
+
+`pub enum Error { ShapeMismatch, InvalidInput, KernelNotFound, ExecutionError, GraphError }`
+
+Must implement:
+
+- Debug  
+- Display  
+- std::error::Error  
+
+---
+
+# 11. Testing
+
+---
+
+## Tensor Tests
+
+File: `tests/tensor_tests.rs`
+
+Tests:
+
+- [ ] tensor_creation_valid  
+- [ ] tensor_creation_invalid_shape  
+- [ ] tensor_zeros_correct_size  
+- [ ] tensor_numel_correct  
+
+---
+
+## Kernel Tests
+
+File: `tests/kernel_tests.rs`
+
+Tests:
+
+- [ ] MatMul correctness test  
+- [ ] Add correctness test  
+- [ ] ReLU correctness test  
+
+---
+
+## Graph Tests
+
+File: `tests/graph_tests.rs`
+
+Tests:
+
+- [ ] graph_add_nodes  
+- [ ] graph_shape_validation  
+- [ ] graph_invalid_shapes_fail  
+
+---
+
+## Executor Tests
+
+File: `tests/integration_tests.rs`
+
+Tests:
+
+- [ ] simple relu execution test  
+- [ ] add graph execution test  
+- [ ] matmul graph execution test  
+- [ ] multi-op graph test:
+- [ ] matmul → add → relu
+- [ ] Verify final output values.
+
+---
+
+# 12. crates.io Readiness Requirements
+
+Before publishing, verify:
+
+`cargo test`
+
+`cargo fmt`
+
+`cargo clippy`
+
+`cargo doc --no-deps`
+
+All must succeed with no warnings.
+
+Stretch goal:
+
+- [ ] Github Actions and README.md buttons that verify the above requirements
+
+---
+
+# 13. 3-Day Implementation Plan
+
+Total estimated time: 20 hours
+
+---
+
+# Day 1 — Tensor and Graph IR
+
+Goal: Complete tensor layer and graph structure
+
+Checklist:
+
+- [ ] Create crate  
+
+- [ ] Implement Tensor struct  
+
+- [ ] Implement Tensor constructors  
+
+- [ ] Implement Tensor validation  
+
+- [ ] Implement Node struct  
+
+- [ ] Implement Graph struct  
+
+- [ ] Implement Graph input nodes  
+
+- [ ] Implement Graph shape validation  
+
+- [ ] Implement matmul/add/relu graph ops  
+
+- [ ] Write tensor tests  
+
+- [ ] Write graph tests  
+
+Completion criteria:
+
+Graph builds successfully and tests pass.
+
+---
+
+# Day 2 — Kernel System and Registry
+
+Goal: Functional compute layer
+
+Checklist:
+
+- [ ] Implement Kernel trait  
+
+- [ ] Implement MatMulKernel  
+
+- [ ] Implement AddKernel  
+
+- [ ] Implement ReluKernel  
+
+- [ ] Implement KernelRegistry  
+
+- [ ] Implement KernelRegistry::default()  
+
+- [ ] Write kernel tests  
+
+Completion criteria:
+
+Kernels produce correct outputs and tests pass.
+
+---
+
+# Day 3 — Executor and Integration
+
+Goal: Full runtime execution
+
+Checklist:
+
+- [ ] Implement Executor  
+
+- [ ] Implement graph execution loop  
+
+- [ ] Implement tensor storage allocation  
+
+- [ ] Implement kernel dispatch  
+
+- [ ] Implement output handling  
+
+- [ ] Write integration tests  
+
+- [ ] Write README  
+
+- [ ] Run cargo clippy  
+
+- [ ] Run cargo fmt  
+
+- [ ] Final polish  
+
+Completion criteria:
+
+End-to-end graph execution works correctly.
+
+---
+
+# Final Deliverable Definition
+
+Project is complete when:
+
+- [ ] All tests pass  
+
+- [ ] Code compiles cleanly  
+
+- [ ] Well-documented README exists  
+
+- [ ] Code refactored and cleanly structured
+
+- [ ] Rustdocs are up-to-date
+
+- [ ] Project published to crates.io  
+
+---
