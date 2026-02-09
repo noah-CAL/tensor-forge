@@ -178,7 +178,12 @@ and may be read freely.
 
 Fields:
 
-`pub struct Graph { nodes: Vec<Node>, inputs: Vec<NodeId>, outputs: Vec<NodeId> }`
+```
+pub struct Graph { 
+    nodes: Vec<Node>, 
+    inputs: Vec<NodeId>, 
+    outputs: Vec<NodeId> }
+```
 
 Graph must be append-only.
 
