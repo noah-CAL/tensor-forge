@@ -12,6 +12,17 @@ pub enum GraphError {
     /// In general for two nodes A and B:
     /// Output(A) == Input(B)
     ShapeMismatch,
+    /// Raised if attempting to connect nodes that do not exist in the graph.
+    ///
+    /// # Example
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let graph = Graph::new();
+    /// let fake_node = NodeId { 10 };
+    /// let result = graph.relu(fake_node);
+    /// assert!(matches!(result.unwrap_err(), GraphError::MissingNode));
+    /// ```
+    MissingNode,
 }
 
 /// Graph stores the nodes for the ML runtime.
@@ -50,13 +61,23 @@ impl Graph {
     ///
     /// It does not create a node or execute anything; it simply marks
     /// an existing node as the graph output.
-    pub fn set_output_node(&mut self, node: NodeId) -> () {}
+    pub fn set_output_node(&mut self, node: NodeId) -> () {
+        unimplemented!()
+    }
+
+    pub fn node(&self, id: NodeId) -> &Node {
+        unimplemented!()
+    }
+
+    pub fn nodes(&self) -> &[Node] {
+        unimplemented!()
+    }
 
     /// Validates a graph before execution.
     ///
     /// Graphs must have at least one input node and one node
     /// marked as output.
-    fn validate(self) -> bool {
+    fn validate(&self) -> bool {
         unimplemented!()
     }
 }
@@ -68,6 +89,12 @@ impl fmt::Display for GraphError {
                 write!(
                     f,
                     "Mismatched input and output dimensions for Nodes A and B. dim(Output(A)) must match dim(Output(B))"
+                )
+            }
+            GraphError::MissingNode => {
+                write!(
+                    f,
+                    "Attempted to operate on a Node that does not exist in the graph. Ensrue you are only interacting with nodes via Graph::input_node()."
                 )
             }
         }
