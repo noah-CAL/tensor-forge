@@ -13,5 +13,5 @@ pub enum OpKind {
     /// Matrix Addition operation.  
     Add,
     /// Matrix `ReLU` operation.  
-    ReLU
+    ReLU,
 }
