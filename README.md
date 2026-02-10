@@ -45,7 +45,7 @@ cargo test
 - executor to run graphs end-to-end
 
 ## License
-This project is licensed under the GNU Affero General Public License v3.0. If you distribute or deploy a modified version of this software, you must make the corresponding source code available under the same license.
+This project is licensed under the MIT license. 
 
 See [LICENSE](LICENSE) for details.
 
