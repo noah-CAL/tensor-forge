@@ -2,7 +2,7 @@
 
 use crate::op::OpKind;
 
-/// Represents the NodeId for a specific node in the graph.
+/// Represents the `NodeId` for a specific node in the graph.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct NodeId(usize);
 
@@ -38,10 +38,8 @@ impl Node {
     /// Rather than use reference-counted pointers, `graph` contains
     /// a list of all the valid nodes. Input-output pairs are generated
     /// by examining the indices and forming a DAG. See [`graph.rs`] for more information.
-    fn new(op: OpKind, inputs: Vec<NodeId>, shape: Vec<usize>) -> Self {
-        let node_id = NodeId {
-            0: ID_COUNTER.fetch_add(1, Ordering::SeqCst) as usize,
-        };
+    pub(crate) fn new(op: OpKind, inputs: Vec<NodeId>, shape: Vec<usize>) -> Self {
+        let node_id = NodeId(ID_COUNTER.fetch_add(1, Ordering::SeqCst) as usize);
         Self {
             id: node_id,
             op,

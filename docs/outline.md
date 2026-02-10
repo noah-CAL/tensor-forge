@@ -207,7 +207,11 @@ Note that `Node` is part of the IR and is exposed read-only for inspection/debug
 
 `Graph::node(id: NodeId) -> &Node`
 
-`Graph::nodes() -> &[Node]`
+`Graph::num_nodes() -> usize`
+
+`Graph::inputs(&self) -> &[NodeId]`
+
+`Graph::outputs(&self) -> &[NodeId]`
 
 Nodes are created internally by `Graph::{input, matmul, add, relu}` and appended to `Graph.nodes`. Users never construct Node directly -- they only receive NodeId handles.
 

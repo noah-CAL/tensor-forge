@@ -6,13 +6,13 @@ use std::collections::HashSet;
 #[test]
 fn graph_creation_valid() {
     let graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 }
 
 #[test]
 fn graph_node_creation() {
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let (shape_a, shape_b) = (vec![4, 1], vec![1, 4]);
     let node_id_a = graph.input_node(shape_a);
@@ -34,7 +34,7 @@ fn graph_node_creation() {
 #[test]
 fn graph_add_matrices() {
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let shape = vec![4, 1];
     // 1. Test addition of nodes with valid dimensions.
@@ -56,7 +56,7 @@ fn graph_add_matrices() {
 
     // 2. Test addition of nodes with invalid dimensions.
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let node_a = graph.input_node(vec![4, 1]);
     let node_b = graph.input_node(vec![4, 2]);
@@ -69,7 +69,7 @@ fn graph_add_matrices() {
 #[test]
 fn graph_relu() {
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let shape = vec![4, 1, 8];
     let input = graph.input_node(shape.clone());
@@ -89,7 +89,7 @@ fn graph_relu() {
 #[test]
 fn graph_add_matmul_node() {
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let node_a_id = graph.input_node(vec![4, 1]);
     let node_b_id = graph.input_node(vec![1, 4]);
@@ -113,7 +113,7 @@ fn graph_add_matmul_node() {
 #[test]
 fn graph_matmul_invalid_dimensions() {
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let node_a = graph.input_node(vec![4, 1]);
     let node_b = graph.input_node(vec![4, 1]);
@@ -134,7 +134,7 @@ fn graph_missing_input_nodes() {
     let fake_node = fake_graph.input_node(vec![1, 1]);
 
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
     let node_a = graph.input_node(vec![4, 1]);
 
     // 1) Node
@@ -162,7 +162,7 @@ fn graph_chained_addition() {
     // Add a large number of nodes of arbitrary shape and inspect the output.
     // Ensure there are no errors.
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     // 1) Create large number of input nodes.
     const NUM_INPUTS: usize = 1_000;
@@ -189,7 +189,7 @@ fn graph_chained_addition() {
         let result = graph
             .add(nodes[i], nodes[i - 1])
             .expect("Adding valid Addition node should succeed");
-        graph.set_output_node(result);
+        graph.set_output_node(result).expect("Valid addition node should be present");
         // Add to total nodes
         nodes.push(result);
     }
@@ -221,7 +221,7 @@ fn graph_chained_matmul() {
     // Tests:
     // (10x2) x (2x8) x (8x4) x (4x61) x (61x3)
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let shapes: Vec<Vec<usize>> = vec![
         vec![10, 2],
@@ -254,9 +254,10 @@ fn graph_chain_full_implementation() {
     // Layers:
     //    (1)     (2)    (3)      (4)      (5)
     let mut graph = Graph::new();
-    assert!(graph.nodes().is_empty());
+    assert_eq!(graph.num_nodes(), 0);
 
     let mut node_set = HashSet::new();
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     let shape_a = vec![10, 5];
     let shape_b = vec![5, 10];
@@ -267,6 +268,7 @@ fn graph_chain_full_implementation() {
     let node_b = graph.input_node(shape_b.clone());
     node_set.insert(node_a.clone());
     node_set.insert(node_b.clone());
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     // (2) Create nodes relu(A) and relu(B)
     let relu_a = graph
@@ -275,6 +277,8 @@ fn graph_chain_full_implementation() {
     let relu_b = graph
         .relu(node_b)
         .expect("Valid relu operation should succeed");
+    node_set.insert(relu_a.clone());
+    node_set.insert(relu_b.clone());
 
     // Verify relu(A)
     let relu_node = graph
@@ -284,7 +288,7 @@ fn graph_chain_full_implementation() {
     assert_eq!(relu_node.inputs.len(), 1);
     assert_eq!(relu_node.inputs[0], node_a);
 
-    node_set.insert(relu_a.clone());
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     // Verify relu(B)
     let relu_node = graph
@@ -294,7 +298,7 @@ fn graph_chain_full_implementation() {
     assert_eq!(relu_node.inputs.len(), 1);
     assert_eq!(relu_node.inputs[0], node_b);
 
-    node_set.insert(relu_b.clone());
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     // (3) Feed into Matmul operation
     let matmul = graph
@@ -307,26 +311,32 @@ fn graph_chain_full_implementation() {
     assert_eq!(matmul_node.inputs[1], relu_b.clone());
 
     node_set.insert(matmul.clone());
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     // (4) Compute the addition of the matmul result with an addition
     //     C of shape dim(A)[0] + dim(B)[1]
     let node_c = graph.input_node(shape_c.clone());
+    node_set.insert(node_c.clone());
+    assert_eq!(graph.num_nodes(), node_set.len());
+
     let add = graph
         .add(matmul, node_c)
         .expect("Adding Add node should succeed");
     node_set.insert(add.clone());
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     let add_node = graph.node(add).expect("Addition node should have be added");
     assert_eq!(add_node.shape, shape_c.clone());
     assert_eq!(add_node.inputs.len(), 2);
     assert!(add_node.inputs.contains(&node_c.clone()));
     assert!(add_node.inputs.contains(&matmul.clone()));
+    assert_eq!(graph.num_nodes(), node_set.len());
 
     // (5) Create final output node and bind to add.
-    graph.set_output_node(add);
+    graph.set_output_node(add).expect("Valid addition node should be present");
 
-    // Check that we allocated 6 unique nodes throughout the test.
+    // Check that we allocated 7 unique nodes throughout the test.
     // Any missing nodes or any node_id collisions will be detected.
-    assert_eq!(node_set.len(), 6);
-    assert_eq!(graph.nodes().len(), node_set.len());
+    assert_eq!(node_set.len(), 7);
+    assert_eq!(graph.num_nodes(), node_set.len());
 }
