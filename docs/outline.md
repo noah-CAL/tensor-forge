@@ -180,14 +180,22 @@ Fields:
 
 ```
 pub struct Graph { 
-    nodes: Vec<Node>, 
+    nodes: HashMap<NodeId, Node>,
     inputs: Vec<NodeId>, 
     outputs: Vec<NodeId> }
 ```
 
-Graph must be append-only.
+`nodes` stores graph nodes indexed by `NodeId` for O(1) lookup.
 
-Note that `Node` is part of the IR and is exposed read-only for inspection/debugging. Graph construction must go through `Graph` API below to preserve invariants (append-only + shape validity).
+Execution order is determined via deterministic topological sorting of the graph.
+
+Graph is append-only: nodes may be added but never removed or mutated in a way that invalidates dependency relationships.
+
+This guarantees:
+
+- All node dependencies execute before the node itself
+- Execution order is deterministic across runs
+- Execution order does not depend on HashMap iteration order
 
 ---
 
@@ -195,7 +203,7 @@ Note that `Node` is part of the IR and is exposed read-only for inspection/debug
 
 `Graph::new() -> Graph`
 
-`Graph::input(shape: Vec<usize>) -> NodeId`
+`Graph::input_node(shape: Vec<usize>) -> NodeId`
 
 `Graph::matmul(lhs: NodeId, rhs: NodeId) -> Result<NodeId, Error>`
 
@@ -203,9 +211,9 @@ Note that `Node` is part of the IR and is exposed read-only for inspection/debug
 
 `Graph::relu(input: NodeId) -> Result<NodeId, Error>`
 
-`Graph::set_output(node: NodeId)`
+`Graph::set_output_node(node: NodeId) -> Result<(), GraphError>`
 
-`Graph::node(id: NodeId) -> &Node`
+`Graph::node(id: NodeId) -> Result<&Node, GraphError>`
 
 `Graph::num_nodes() -> usize`
 
@@ -213,10 +221,29 @@ Note that `Node` is part of the IR and is exposed read-only for inspection/debug
 
 `Graph::outputs(&self) -> &[NodeId]`
 
+`Graph::topo_sort(&self) -> Result<Vec<NodeId>, GraphError>`
+
 Nodes are created internally by `Graph::{input, matmul, add, relu}` and appended to `Graph.nodes`. Users never construct Node directly -- they only receive NodeId handles.
 
-> `NodeId` is only valid for the `Graph` it came from. Mixing `NodeId`s from multiple graphs results in undefined behavior.
+> NodeId is only valid for the Graph instance that created it.
+> 
+> Using a NodeId from a different graph is a runtime error and will return GraphError::InvalidNodeId.
 
+---
+
+## Execution Ordering
+
+Graph execution order is computed using deterministic topological sorting.
+
+Topological sorting ensures:
+
+- All node dependencies execute before dependent nodes
+- Execution order is valid for arbitrary DAG structures
+- Execution order is deterministic across runs
+
+Determinism is achieved by breaking ties using ascending NodeId order.
+
+This guarantees reproducible execution regardless of HashMap internal ordering.
 
 ---
 
@@ -329,7 +356,9 @@ Steps:
 
 Execution order:
 
-Nodes execute in insertion order.
+Nodes execute in deterministic topological order.
+
+This ensures correct dependency resolution and reproducible execution.
 
 ---
 
@@ -376,6 +405,26 @@ Tests:
 
 ---
 
+## Graph Tests
+
+File: `tests/graph_tests.rs`
+
+Tests:
+
+- [X] graph_creation_valid
+- [X] graph_node_creation
+- [X] graph_missing_input_nodes
+- [X] graph_relu
+- [X] graph_add_matrices
+- [X] graph_add_matmul_node
+- [X] graph_matmul_invalid_dimensions
+- [X] graph_chained_matmul
+- [X] graph_chain_full_implementation
+- [ ] graph_topo_sort
+- [ ] graph_topo_sort_determinism
+
+---
+
 ## Kernel Tests
 
 File: `tests/kernel_tests.rs`
@@ -385,18 +434,6 @@ Tests:
 - [ ] MatMul correctness test  
 - [ ] Add correctness test  
 - [ ] ReLU correctness test  
-
----
-
-## Graph Tests
-
-File: `tests/graph_tests.rs`
-
-Tests:
-
-- [ ] graph_add_nodes  
-- [ ] graph_shape_validation  
-- [ ] graph_invalid_shapes_fail  
 
 ---
 
@@ -443,7 +480,7 @@ All must succeed with no warnings.
 
 # Day 1 — Tensor and Graph IR
 
-Goal: Complete tensor layer and graph structure
+[COMPLETE] Goal: Complete tensor layer and graph structure
 
 Checklist:
 
@@ -459,21 +496,21 @@ Checklist:
 
 - [X] Write Tensor documentation  
 
-- [ ] Implement Node struct  
+- [X] Implement Node struct  
 
-- [ ] Implement Graph struct  
+- [X] Implement Graph struct  
 
-- [ ] Write Graph tests  
+- [X] Write Graph tests  
 
-- [ ] Implement Graph input nodes  
+- [X] Implement Graph input nodes  
 
-- [ ] Implement Graph shape validation  
+- [X] Implement Graph shape validation  
 
-- [ ] Implement matmul/add/relu graph ops  
+- [X] Implement matmul/add/relu graph ops  
 
 Completion criteria:
 
-Graph builds successfully and tests pass.
+✅ Graph builds successfully and tests pass.
 
 ---
 
@@ -508,6 +545,8 @@ Kernels produce correct outputs and tests pass.
 Goal: Full runtime execution
 
 Checklist:
+
+- [ ] Implement graph topological sort  
 
 - [ ] Implement Executor  
 

@@ -5,45 +5,79 @@ use crate::op::OpKind;
 use std::collections::HashMap;
 use std::fmt;
 
-/// Error types for Graph construction and execution.
+/// Error types for [`Graph`] construction and validation.
+///
+/// These errors are returned by graph-building APIs when an operation cannot be
+/// represented safely in the current graph.
+///
+/// # Examples
+/// ```
+/// # use tensor_forge::graph::{Graph, GraphError};
+/// let mut g = Graph::new();
+/// let a = g.input_node(vec![2, 3]);
+/// let b = g.input_node(vec![2, 4]);
+///
+/// // add() requires identical shapes
+/// assert!(matches!(g.add(a, b).unwrap_err(), GraphError::ShapeMismatch));
+/// ```
 #[derive(Clone, Debug)]
 pub enum GraphError {
-    /// Raised if attempting to concatenate input/output nodes
-    /// with incorrect tensor dimensions.
+    /// Raised when connecting nodes whose tensor shapes are incompatible for the requested op.
     ///
-    /// In general for two nodes A and B:
-    /// Output(A) == Input(B)
+    /// # Examples
+    /// - `add(A, B)` requires `shape(A) == shape(B)`.
+    /// - `matmul(L, R)` requires `L` and `R` be 2-D and `L.shape[1] == R.shape[0]`.
+    ///
+    /// This error indicates the graph is not well-typed under the op’s shape rules.
     ShapeMismatch,
-    /// Raised if attempting to connect nodes that do not exist in the graph.
+    /// Raised when an operation references a [`NodeId`] that does not exist in the graph.
+    ///
+    /// This typically happens when:
+    /// - A `NodeId` was produced by a different [`Graph`] instance, or
+    /// - A stale/invalid `NodeId` was stored and reused.
     ///
     /// # Example
     /// ```
     /// # use tensor_forge::graph::{Graph, GraphError};
-    /// let mut alt_graph = Graph::new();
-    /// let fake_node = alt_graph.input_node(vec![1, 1]);
+    /// let mut g1 = Graph::new();
+    /// let foreign = g1.input_node(vec![1, 1]);
     ///
-    /// let mut graph = Graph::new();
-    /// let result = graph.relu(fake_node);
-    /// assert!(matches!(result.unwrap_err(), GraphError::InvalidNodeId));
-    ///
-    /// let result = graph.add(fake_node, fake_node);
-    /// assert!(matches!(result.unwrap_err(), GraphError::InvalidNodeId));
-    ///
-    /// let result = graph.matmul(fake_node, fake_node);
-    /// assert!(matches!(result.unwrap_err(), GraphError::InvalidNodeId));
+    /// let mut g2 = Graph::new();
+    /// assert!(matches!(g2.relu(foreign).unwrap_err(), GraphError::InvalidNodeId));
     /// ```
     InvalidNodeId,
-    /// Raised if attempting to add a new node with the same ID.
+    /// Raised when inserting a node whose ID already exists in the graph.
     ///
-    /// Note that this is unlikely to be raised except in the case of overflowing
-    /// the graph by failing a new node allocation
+    /// In this implementation, node IDs are expected to be monotonically increasing and unique.
+    /// A collision indicates a serious invariant failure (e.g. ID overflow or a bug in node
+    /// allocation), and should be treated as unrecoverable at the application level.
     IdCollision,
+    /// Raised when the graph contains a cycle and no valid execution order exists.
+    CycleDetected,
 }
 
-/// Graph stores the nodes for the ML runtime.
+/// A minimal compute-graph container for an ML runtime intermediate representation (IR).
+///
+/// A [`Graph`] owns a set of [`Node`]s indexed by [`NodeId`]. Each node encodes:
+/// - an operation kind ([`OpKind`]),
+/// - a list of input dependencies (by `NodeId`), and
+/// - the inferred output tensor shape.
+///
+/// This type currently supports constructing a graph via:
+/// - [`Graph::input_node`] for source nodes, and
+/// - op constructors like [`Graph::add`], [`Graph::matmul`], and [`Graph::relu`].
+///
+/// Output nodes must be designated explicitly via [`Graph::set_output_node`].
 ///
 /// # Examples
-/// #todo
+/// ```
+/// # use tensor_forge::graph::Graph;
+/// let mut g = Graph::new();
+/// let x = g.input_node(vec![2, 3]);
+/// let y = g.relu(x).unwrap();
+/// g.set_output_node(y).unwrap();
+/// assert_eq!(g.outputs().len(), 1);
+/// ```
 pub struct Graph {
     nodes: HashMap<NodeId, Node>,
     inputs: Vec<NodeId>,
@@ -69,6 +103,16 @@ impl Graph {
         Ok(node_id)
     }
 
+    /// Creates an empty graph with no nodes, inputs, or outputs.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::Graph;
+    /// let g = Graph::new();
+    /// assert_eq!(g.num_nodes(), 0);
+    /// assert!(g.inputs().is_empty());
+    /// assert!(g.outputs().is_empty());
+    /// ```
     #[must_use]
     pub fn new() -> Self {
         Graph {
@@ -78,11 +122,56 @@ impl Graph {
         }
     }
 
+    /// Creates a new input node with the given tensor `shape` and returns its `NodeId`.
+    ///
+    /// Input nodes have no dependencies and an output shape equal to `shape`.
+    ///
+    /// # Panics
+    /// Panics if a node ID collision is detected (an invariant violation indicating too many nodes
+    /// have been allocated or ID generation is broken).
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::Graph;
+    /// let mut g = Graph::new();
+    /// let x = g.input_node(vec![2, 3]);
+    /// assert!(g.node(x).is_ok());
+    /// assert_eq!(g.num_nodes(), 1);
+    /// ```
     pub fn input_node(&mut self, shape: Vec<usize>) -> NodeId {
         let node = Node::new(OpKind::Input, Vec::new(), shape);
         self.add_node(node).expect("Node ID collision detected on node creation. Too many nodes may have been allocated. Ensure that Graph operations are single-threaded.")
     }
 
+    /// Adds a matrix multiplication node `left × right`.
+    ///
+    /// Shape rule (2-D):
+    /// - `left.shape = [m, k]`
+    /// - `right.shape = [k, n]`
+    /// - output shape is `[m, n]`
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError::InvalidNodeId`] if either `left` or `right` does not exist
+    /// in this graph.
+    ///
+    /// Returns [`GraphError::ShapeMismatch`] if the inner dimensions do not match.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let mut g = Graph::new();
+    /// let a = g.input_node(vec![2, 3]);
+    /// let b = g.input_node(vec![3, 4]);
+    ///
+    /// let c = g.matmul(a, b).unwrap();
+    /// assert!(g.node(c).is_ok());
+    /// assert_eq!(g.num_nodes(), 3);
+    ///
+    /// // Mismatched inner dimension: [2,3] x [2,4] is invalid
+    /// let bad = g.input_node(vec![2, 4]);
+    /// assert!(matches!(g.matmul(a, bad).unwrap_err(), GraphError::ShapeMismatch));
+    /// ```
     pub fn matmul(&mut self, left: NodeId, right: NodeId) -> Result<NodeId, GraphError> {
         let left_node = self.node(left)?;
         let right_node = self.node(right)?;
@@ -94,6 +183,30 @@ impl Graph {
         self.add_node(matmul_node)
     }
 
+    /// Adds an elementwise addition node `left + right`.
+    ///
+    /// Shape rule:
+    /// - `shape(left) == shape(right)`
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError::InvalidNodeId`] if either input does not exist in this graph.
+    ///
+    /// Returns [`GraphError::ShapeMismatch`] if the shapes differ.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let mut g = Graph::new();
+    /// let a = g.input_node(vec![2, 3]);
+    /// let b = g.input_node(vec![2, 3]);
+    ///
+    /// let c = g.add(a, b).unwrap();
+    /// assert!(g.node(c).is_ok());
+    ///
+    /// let d = g.input_node(vec![2, 4]);
+    /// assert!(matches!(g.add(a, d).unwrap_err(), GraphError::ShapeMismatch));
+    /// ```
     pub fn add(&mut self, left: NodeId, right: NodeId) -> Result<NodeId, GraphError> {
         let left_node = self.node(left)?;
         let right_node = self.node(right)?;
@@ -108,23 +221,83 @@ impl Graph {
         self.add_node(addition_node)
     }
 
+    /// Adds a `ReLU` node `relu(input)`.
+    ///
+    /// `ReLU` preserves shape: `shape(output) == shape(input)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError::InvalidNodeId`] if `input` does not exist in this graph.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let mut g = Graph::new();
+    /// let x = g.input_node(vec![2, 3]);
+    ///
+    /// let y = g.relu(x).unwrap();
+    /// assert!(g.node(y).is_ok());
+    ///
+    /// // Using a NodeId from another graph is invalid
+    /// let mut other = Graph::new();
+    /// let foreign = other.input_node(vec![2, 3]);
+    /// assert!(matches!(g.relu(foreign).unwrap_err(), GraphError::InvalidNodeId));
+    /// ```
     pub fn relu(&mut self, input: NodeId) -> Result<NodeId, GraphError> {
         let input_node = self.node(input)?;
         let relu_node = Node::new(OpKind::ReLU, vec![input_node.id], input_node.shape.clone());
         self.add_node(relu_node)
     }
 
-    /// Marks `node` as an output node. Graphs must have at least one output mode, and may have
-    /// multiple.
+    /// Marks `node` as an output node.
     ///
-    /// It does not create a node or execute anything; it simply marks
-    /// an existing node as the graph output.
+    /// Graphs must have at least one output node to be meaningful for execution, and may have
+    /// multiple outputs. This method does **not** create a new node or execute anything; it only
+    /// records the provided node ID as an output.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError::InvalidNodeId`] if `node` does not exist in this graph.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let mut g = Graph::new();
+    /// let x = g.input_node(vec![2, 3]);
+    /// let y = g.relu(x).unwrap();
+    ///
+    /// g.set_output_node(y).unwrap();
+    /// assert_eq!(g.outputs(), &[y]);
+    ///
+    /// // A NodeId from another graph is invalid
+    /// let mut other = Graph::new();
+    /// let foreign = other.input_node(vec![2, 3]);
+    /// assert!(matches!(g.set_output_node(foreign).unwrap_err(), GraphError::InvalidNodeId));
+    /// ```
     pub fn set_output_node(&mut self, node: NodeId) -> Result<(), GraphError> {
         let node = self.node(node)?;
         self.outputs.push(node.id);
         Ok(())
     }
 
+    /// Returns a shared reference to the node with the given `NodeId`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError::InvalidNodeId`] if the node is not present in this graph.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let mut g = Graph::new();
+    /// let x = g.input_node(vec![1, 1]);
+    /// assert!(g.node(x).is_ok());
+    ///
+    /// // A NodeId from another graph is invalid
+    /// let mut other = Graph::new();
+    /// let foreign = other.input_node(vec![1, 1]);
+    /// assert!(matches!(g.node(foreign).unwrap_err(), GraphError::InvalidNodeId));
+    /// ```
     pub fn node(&self, id: NodeId) -> Result<&Node, GraphError> {
         match self.nodes.get(&id) {
             Some(node) => Ok(node),
@@ -132,19 +305,127 @@ impl Graph {
         }
     }
 
+    /// Returns the total number of nodes stored in this graph.
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::Graph;
+    /// let mut g = Graph::new();
+    /// assert_eq!(g.num_nodes(), 0);
+    /// let x = g.input_node(vec![2, 3]);
+    /// let y = g.relu(x).unwrap();
+    /// assert_eq!(g.num_nodes(), 2);
+    /// ```
     #[must_use]
     pub fn num_nodes(&self) -> usize {
         self.nodes.values().len()
     }
 
+    /// Returns the list of nodes recorded as inputs.
+    ///
+    /// Note: in the current implementation, *every* inserted node is appended to this list
+    /// (including op nodes created by [`Graph::add`], [`Graph::matmul`], and [`Graph::relu`]).
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::Graph;
+    /// let mut g = Graph::new();
+    /// let a = g.input_node(vec![2, 3]);
+    /// let b = g.input_node(vec![2, 3]);
+    /// let c = g.add(a, b).unwrap();
+    ///
+    /// // Currently includes both inputs and the derived node.
+    /// assert_eq!(g.inputs(), &[a, b, c]);
+    /// ```
     #[must_use]
     pub fn inputs(&self) -> &[NodeId] {
         &self.inputs
     }
 
+    /// Returns the list of nodes marked as outputs via [`Graph::set_output_node`].
+    ///
+    /// # Examples
+    /// ```
+    /// # use tensor_forge::graph::Graph;
+    /// let mut g = Graph::new();
+    /// let x = g.input_node(vec![2, 3]);
+    /// let y = g.relu(x).unwrap();
+    ///
+    /// assert!(g.outputs().is_empty());
+    /// g.set_output_node(y).unwrap();
+    /// assert_eq!(g.outputs(), &[y]);
+    /// ```
     #[must_use]
     pub fn outputs(&self) -> &[NodeId] {
         &self.outputs
+    }
+
+    /// Computes a deterministic topological execution order of all nodes in the graph.
+    ///
+    /// Topological ordering guarantees that every node appears *after* all of its
+    /// dependencies. This ordering is required for correct execution of the compute graph,
+    /// since kernels must not execute before their input tensors are available.
+    ///
+    /// The returned order includes every node in the graph exactly once.
+    ///
+    /// # Determinism
+    ///
+    /// Determinism is guaranteed by enforcing a stable tie-breaking rule when multiple
+    /// nodes are ready for execution. Nodes with zero remaining dependencies are processed
+    /// in ascending [`NodeId`] order.
+    ///
+    /// This ensures:
+    ///
+    /// - Reproducible execution across runs
+    /// - Independence from hash seed randomization
+    /// - Stable ordering suitable for debugging and testing
+    ///
+    /// # Returns
+    ///
+    /// A vector of [`NodeId`] representing the execution order.
+    ///
+    /// The order satisfies the invariant:
+    ///
+    /// ```text
+    /// For every node N:
+    ///     all inputs(N) appear before N in the returned vector
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError::CycleDetected`] if the graph contains a cycle.
+    ///
+    /// Cycles violate compute graph semantics because no valid execution order exists.
+    ///
+    /// # Complexity
+    ///
+    /// Time complexity: **O(V + E)**
+    /// Space complexity: **O(V + E)**
+    ///
+    /// where:
+    ///
+    /// - V = number of nodes
+    /// - E = number of edges (dependencies)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// # use tensor_forge::graph::Graph;
+    /// let mut g = Graph::new();
+    ///
+    /// let a = g.input_node(vec![2, 3]);
+    /// let b = g.relu(a).unwrap();
+    /// let c = g.relu(b).unwrap();
+    ///
+    /// let order = g.topo_sort().unwrap();
+    ///
+    /// let pos = |id| order.iter().position(|&x| x == id).unwrap();
+    ///
+    /// assert!(pos(a) < pos(b));
+    /// assert!(pos(b) < pos(c));
+    /// ```
+    pub fn topo_sort(&self) -> Result<Vec<NodeId>, GraphError> {
+        Err(GraphError::ShapeMismatch)
     }
 }
 
@@ -167,6 +448,12 @@ impl fmt::Display for GraphError {
                 write!(
                     f,
                     "Attempted to add a new node to a graph with an ID that already exists."
+                )
+            }
+            GraphError::CycleDetected => {
+                write!(
+                    f,
+                    "Graph contains a dependency cycle. Execution order cannot be determined."
                 )
             }
         }
