@@ -474,11 +474,11 @@ All must succeed with no warnings.
 
 ---
 
-# 13. 3-Day Implementation Plan
+# 13. Implementation Plan
 
 ---
 
-# Day 1 — Tensor and Graph IR
+# Phase 1 — Tensor and Graph IR
 
 [COMPLETE] Goal: Complete tensor layer and graph structure
 
@@ -514,7 +514,7 @@ Completion criteria:
 
 ---
 
-# Day 2 — Kernel System and Registry
+# Phase 2 — Kernel System and Registry
 
 Goal: Functional compute layer
 
@@ -540,7 +540,7 @@ Kernels produce correct outputs and tests pass.
 
 ---
 
-# Day 3 — Executor and Integration
+# Phase 3 — Executor and Integration
 
 Goal: Full runtime execution
 

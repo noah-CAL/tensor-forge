@@ -125,7 +125,7 @@ fn graph_matmul_invalid_dimensions() {
 
 #[test]
 fn graph_missing_input_nodes() {
-    // Test missing inputs by using Node IDs from a 
+    // Test missing inputs by using Node IDs from a
     // second graph instantiation
     let mut fake_graph = Graph::new();
     for _ in 0..10 {
@@ -189,7 +189,9 @@ fn graph_chained_addition() {
         let result = graph
             .add(nodes[i], nodes[i - 1])
             .expect("Adding valid Addition node should succeed");
-        graph.set_output_node(result).expect("Valid addition node should be present");
+        graph
+            .set_output_node(result)
+            .expect("Valid addition node should be present");
         // Add to total nodes
         nodes.push(result);
     }
@@ -266,8 +268,8 @@ fn graph_chain_full_implementation() {
     // (1) Create input nodes A and B
     let node_a = graph.input_node(shape_a.clone());
     let node_b = graph.input_node(shape_b.clone());
-    node_set.insert(node_a.clone());
-    node_set.insert(node_b.clone());
+    node_set.insert(node_a);
+    node_set.insert(node_b);
     assert_eq!(graph.num_nodes(), node_set.len());
 
     // (2) Create nodes relu(A) and relu(B)
@@ -277,8 +279,8 @@ fn graph_chain_full_implementation() {
     let relu_b = graph
         .relu(node_b)
         .expect("Valid relu operation should succeed");
-    node_set.insert(relu_a.clone());
-    node_set.insert(relu_b.clone());
+    node_set.insert(relu_a);
+    node_set.insert(relu_b);
 
     // Verify relu(A)
     let relu_node = graph
@@ -302,7 +304,7 @@ fn graph_chain_full_implementation() {
 
     // (3) Feed into Matmul operation
     let matmul = graph
-        .matmul(relu_a.clone(), relu_b.clone())
+        .matmul(relu_a, relu_b)
         .expect("Valid matmul after relu should succeed");
     let matmul_node = graph.node(matmul).expect("Matmul node should be added");
     assert_eq!(matmul_node.shape, shape_c);
@@ -310,19 +312,19 @@ fn graph_chain_full_implementation() {
     assert_eq!(matmul_node.inputs[0], relu_a.clone());
     assert_eq!(matmul_node.inputs[1], relu_b.clone());
 
-    node_set.insert(matmul.clone());
+    node_set.insert(matmul);
     assert_eq!(graph.num_nodes(), node_set.len());
 
     // (4) Compute the addition of the matmul result with an addition
     //     C of shape dim(A)[0] + dim(B)[1]
     let node_c = graph.input_node(shape_c.clone());
-    node_set.insert(node_c.clone());
+    node_set.insert(node_c);
     assert_eq!(graph.num_nodes(), node_set.len());
 
     let add = graph
         .add(matmul, node_c)
         .expect("Adding Add node should succeed");
-    node_set.insert(add.clone());
+    node_set.insert(add);
     assert_eq!(graph.num_nodes(), node_set.len());
 
     let add_node = graph.node(add).expect("Addition node should have be added");
@@ -333,7 +335,9 @@ fn graph_chain_full_implementation() {
     assert_eq!(graph.num_nodes(), node_set.len());
 
     // (5) Create final output node and bind to add.
-    graph.set_output_node(add).expect("Valid addition node should be present");
+    graph
+        .set_output_node(add)
+        .expect("Valid addition node should be present");
 
     // Check that we allocated 7 unique nodes throughout the test.
     // Any missing nodes or any node_id collisions will be detected.

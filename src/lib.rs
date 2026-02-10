@@ -5,7 +5,7 @@
 #![warn(clippy::pedantic)]
 #![warn(missing_docs)]
 
-pub mod tensor;
+pub mod graph;
 pub mod node;
 pub mod op;
-pub mod graph;
+pub mod tensor;

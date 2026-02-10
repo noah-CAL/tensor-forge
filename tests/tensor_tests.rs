@@ -65,9 +65,10 @@ fn tensor_mutability_test() {
 
     let numel = tensor.numel();
     let data: &mut [f64] = tensor.data_mut();
+    #[allow(clippy::needless_range_loop)]
     for i in 0..numel {
-        data[i] = i as f64;
+        data[i] = (i + 1) as f64;
     }
-    let expected_data: Vec<f64> = (0..16).map(|x| x as f64).collect();
+    let expected_data: Vec<f64> = (1..17).map(|x| x as f64).collect();
     assert_eq!(tensor.data(), expected_data);
 }
