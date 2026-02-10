@@ -211,6 +211,8 @@ Note that `Node` is part of the IR and is exposed read-only for inspection/debug
 
 Nodes are created internally by `Graph::{input, matmul, add, relu}` and appended to `Graph.nodes`. Users never construct Node directly -- they only receive NodeId handles.
 
+> `NodeId` is only valid for the `Graph` it came from. Mixing `NodeId`s from multiple graphs results in undefined behavior.
+
 
 ---
 

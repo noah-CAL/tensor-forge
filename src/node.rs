@@ -16,6 +16,7 @@ pub struct NodeId(usize);
 ///
 /// # Examples
 /// #TODO
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Node {
     /// ID of the current node.
     ///

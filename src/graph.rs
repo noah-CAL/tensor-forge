@@ -18,11 +18,18 @@ pub enum GraphError {
     /// ```
     /// # use tensor_forge::graph::{Graph, GraphError};
     /// let graph = Graph::new();
-    /// let fake_node = NodeId { 10 };
+    /// let fake_node = NodeId(10);
     /// let result = graph.relu(fake_node);
-    /// assert!(matches!(result.unwrap_err(), GraphError::MissingNode));
+    /// assert!(matches!(result.unwrap_err(), GraphError::InvalidNodeId));
     /// ```
-    MissingNode,
+    /// ```
+    /// # use tensor_forge::graph::{Graph, GraphError};
+    /// let graph = Graph::new();
+    /// let fake_node = NodeId(10);
+    /// let result = graph.node(fake_node);
+    /// assert!(matches!(result.unwrap_err(), GraphError::InvalidNodeId));
+    /// ```
+    InvalidNodeId,
 }
 
 /// Graph stores the nodes for the ML runtime.
@@ -36,8 +43,13 @@ pub struct Graph {
 }
 
 impl Graph {
-    pub fn new() -> Graph {
-        unimplemented!()
+    #[must_use]
+    pub fn new() -> Self {
+        Graph {
+            nodes: Vec::new(),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+        }
     }
 
     pub fn input_node(&mut self, shape: Vec<usize>) -> NodeId {
@@ -65,7 +77,7 @@ impl Graph {
         unimplemented!()
     }
 
-    pub fn node(&self, id: NodeId) -> &Node {
+    pub fn node(&self, id: NodeId) -> Result<&Node, GraphError> {
         unimplemented!()
     }
 
@@ -73,11 +85,11 @@ impl Graph {
         unimplemented!()
     }
 
-    /// Validates a graph before execution.
-    ///
-    /// Graphs must have at least one input node and one node
-    /// marked as output.
-    fn validate(&self) -> bool {
+    pub fn inputs(&self) -> &[NodeId] {
+        unimplemented!()
+    }
+
+    pub fn outputs(&self) -> &[NodeId] {
         unimplemented!()
     }
 }
@@ -91,7 +103,7 @@ impl fmt::Display for GraphError {
                     "Mismatched input and output dimensions for Nodes A and B. dim(Output(A)) must match dim(Output(B))"
                 )
             }
-            GraphError::MissingNode => {
+            GraphError::InvalidNodeId => {
                 write!(
                     f,
                     "Attempted to operate on a Node that does not exist in the graph. Ensrue you are only interacting with nodes via Graph::input_node()."
