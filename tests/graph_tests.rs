@@ -165,7 +165,7 @@ fn graph_chained_addition() {
     assert_eq!(graph.num_nodes(), 0);
 
     // 1) Create large number of input nodes.
-    const NUM_INPUTS: usize = 1_000;
+    const NUM_INPUTS: usize = 100_000;
     const NUM_OUTPUTS: usize = NUM_INPUTS / 2;
     let shape = vec![20, 10];
 
@@ -245,7 +245,7 @@ fn graph_chained_matmul() {
 }
 
 #[test]
-fn graph_chain_full_implementation() {
+fn graph_chain_input_relu_matmul_add() {
     // Tests:
     // Input A -- ReLU     Input C
     //                 \          \

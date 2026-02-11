@@ -3,7 +3,6 @@ use tensor_forge::tensor::Tensor;
 
 use std::iter::zip;
 
-
 /////////////
 // Helpers //
 /////////////
@@ -180,7 +179,11 @@ fn add_kernel_overflow_f64_to_infinity() {
 
     let out = run_kernel(AddKernel, &inputs, &shape).unwrap();
 
-    assert!(out.data().iter().all(|x| x.is_infinite() && x.is_sign_positive()));
+    assert!(
+        out.data()
+            .iter()
+            .all(|x| x.is_infinite() && x.is_sign_positive())
+    );
 }
 
 #[test]
@@ -213,10 +216,10 @@ fn add_kernel_infinity_and_nan_semantics() {
 
     assert!(got[0].is_infinite() && got[0].is_sign_positive()); // inf + 1 => inf
     assert!(got[1].is_infinite() && got[1].is_sign_negative()); // -inf + 1 => -inf
-    assert!(got[2].is_nan());                                   // inf + -inf => NaN
+    assert!(got[2].is_nan()); // inf + -inf => NaN
     assert!(got[3].is_infinite() && got[3].is_sign_positive()); // 1 + inf => inf
-    assert!(got[4].is_nan());                                   // NaN + 2 => NaN
-    assert!(got[5].is_nan());                                   // 0 + NaN => NaN
+    assert!(got[4].is_nan()); // NaN + 2 => NaN
+    assert!(got[5].is_nan()); // 0 + NaN => NaN
 }
 
 #[test]
@@ -364,7 +367,11 @@ fn relu_kernel_nan_propagation() {
     // So we do a per-element check:
     for (got, exp) in zip(out.data(), expected.iter()) {
         if exp.is_nan() {
-            assert!(got.is_nan(), "Expected output to carry NAN through ReLU. Got {}", got);
+            assert!(
+                got.is_nan(),
+                "Expected output to carry NAN through ReLU. Got {}",
+                got
+            );
         } else {
             assert_eq!(*got, *exp);
         }
@@ -374,14 +381,7 @@ fn relu_kernel_nan_propagation() {
 #[test]
 fn relu_kernel_infinity_handling() {
     let shape = vec![1, 6];
-    let x_data = vec![
-        f64::INFINITY,
-        f64::NEG_INFINITY,
-        1.0,
-        -1.0,
-        0.0,
-        -0.0,
-    ];
+    let x_data = vec![f64::INFINITY, f64::NEG_INFINITY, 1.0, -1.0, 0.0, -0.0];
 
     let expected = vec![f64::INFINITY, 0.0, 1.0, 0.0, 0.0, 0.0];
 
@@ -404,15 +404,8 @@ fn matmul_kernel_basic_rectangular() {
     let b_shape = vec![3, 2];
     let out_shape = vec![2, 2];
 
-    let a_data = vec![
-        1.0, 2.0, 3.0,
-        4.0, 5.0, 6.0,
-    ];
-    let b_data = vec![
-        7.0,  8.0,
-        9.0, 10.0,
-        11.0, 12.0,
-    ];
+    let a_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    let b_data = vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0];
 
     let expected = matmul_ref(&a_data, &b_data, 2, 3, 2);
 
@@ -430,16 +423,8 @@ fn matmul_kernel_identity_right() {
     let shape = vec![3, 3];
     let out_shape = vec![3, 3];
 
-    let a_data = vec![
-        2.0, -1.0, 3.0,
-        0.0,  4.0, 5.0,
-        7.0,  8.0, 9.0,
-    ];
-    let i_data = vec![
-        1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
-    ];
+    let a_data = vec![2.0, -1.0, 3.0, 0.0, 4.0, 5.0, 7.0, 8.0, 9.0];
+    let i_data = vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
 
     let a = Tensor::from_vec(shape.clone(), a_data.clone()).unwrap();
     let i = Tensor::from_vec(shape, i_data).unwrap();
@@ -475,15 +460,15 @@ fn matmul_kernel_invalid_arity() {
     let b = Tensor::from_vec(vec![1, 1], vec![1.0]).unwrap();
 
     // 0 inputs
-    let err = run_kernel(MatMulKernel, &Vec::<&Tensor>::new(), &vec![1, 1]).unwrap_err();
+    let err = run_kernel(MatMulKernel, &Vec::<&Tensor>::new(), &[1, 1]).unwrap_err();
     assert!(matches!(err, KernelError::InvalidArguments));
 
     // 1 input
-    let err = run_kernel(MatMulKernel, &vec![&a], &vec![1, 1]).unwrap_err();
+    let err = run_kernel(MatMulKernel, &[&a], &[1, 1]).unwrap_err();
     assert!(matches!(err, KernelError::InvalidArguments));
 
     // 3 inputs
-    let err = run_kernel(MatMulKernel, &vec![&a, &b, &a], &vec![1, 1]).unwrap_err();
+    let err = run_kernel(MatMulKernel, &[&a, &b, &a], &[1, 1]).unwrap_err();
     assert!(matches!(err, KernelError::InvalidArguments));
 }
 
@@ -493,7 +478,7 @@ fn matmul_kernel_shape_mismatch() {
     let a = Tensor::from_vec(vec![2, 3], vec![1.0; 6]).unwrap();
     let b = Tensor::from_vec(vec![2, 4], vec![1.0; 8]).unwrap();
 
-    let err = run_kernel(MatMulKernel, &vec![&a, &b], &vec![2, 4]).unwrap_err();
+    let err = run_kernel(MatMulKernel, &[&a, &b], &[2, 4]).unwrap_err();
     assert!(matches!(err, KernelError::ShapeMismatch));
 }
 
@@ -503,7 +488,7 @@ fn matmul_kernel_output_shape_mismatch() {
     let a = Tensor::from_vec(vec![2, 3], vec![1.0; 6]).unwrap();
     let b = Tensor::from_vec(vec![3, 2], vec![1.0; 6]).unwrap();
 
-    let err = run_kernel(MatMulKernel, &vec![&a, &b], &vec![2, 3]).unwrap_err();
+    let err = run_kernel(MatMulKernel, &[&a, &b], &[2, 3]).unwrap_err();
     assert!(matches!(err, KernelError::ShapeMismatch));
 }
 
@@ -518,30 +503,20 @@ fn matmul_kernel_chain() {
     let c_shape = vec![2, 4];
     let e_shape = vec![2, 4];
 
-    let a_data = vec![
-        1.0, 2.0, 3.0,
-        4.0, 5.0, 6.0,
-    ];
-    let b_data = vec![
-        1.0, 0.0,
-        0.0, 1.0,
-        1.0, 1.0,
-    ];
-    let c_data = vec![
-        1.0, 2.0, 3.0, 4.0,
-        5.0, 6.0, 7.0, 8.0,
-    ];
+    let a_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    let b_data = vec![1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+    let c_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
 
     let a = Tensor::from_vec(a_shape, a_data.clone()).unwrap();
     let b = Tensor::from_vec(b_shape, b_data.clone()).unwrap();
     let c = Tensor::from_vec(c_shape, c_data.clone()).unwrap();
 
     let d_expected = matmul_ref(&a_data, &b_data, 2, 3, 2);
-    let d = run_kernel(MatMulKernel, &vec![&a, &b], &d_shape).unwrap();
+    let d = run_kernel(MatMulKernel, &[&a, &b], &d_shape).unwrap();
     assert_tensor_eq(&d, &d_expected);
 
     let e_expected = matmul_ref(d.data(), &c_data, 2, 2, 4);
-    let e = run_kernel(MatMulKernel, &vec![&d, &c], &e_shape).unwrap();
+    let e = run_kernel(MatMulKernel, &[&d, &c], &e_shape).unwrap();
     assert_tensor_eq(&e, &e_expected);
 }
 
@@ -565,19 +540,9 @@ fn kernel_integration_relu_matmul_add_graph() {
     let c_shape = vec![2, 2];
     let out_shape = vec![2, 2];
 
-    let a_data = vec![
-        -1.0, 2.0, -3.0,
-         4.0, -5.0, 6.0,
-    ];
-    let b_data = vec![
-        1.0, -2.0,
-        3.0,  4.0,
-       -5.0,  6.0,
-    ];
-    let c_data = vec![
-        10.0, 20.0,
-        30.0, 40.0,
-    ];
+    let a_data = vec![-1.0, 2.0, -3.0, 4.0, -5.0, 6.0];
+    let b_data = vec![1.0, -2.0, 3.0, 4.0, -5.0, 6.0];
+    let c_data = vec![10.0, 20.0, 30.0, 40.0];
 
     // Reference expected:
     let a_relu = relu_ref(&a_data);
@@ -590,11 +555,11 @@ fn kernel_integration_relu_matmul_add_graph() {
     let b = Tensor::from_vec(b_shape.clone(), b_data).unwrap();
     let c = Tensor::from_vec(c_shape.clone(), c_data).unwrap();
 
-    let a1 = run_kernel(ReluKernel, &vec![&a], &a_shape).unwrap();
-    let b1 = run_kernel(ReluKernel, &vec![&b], &b_shape).unwrap();
+    let a1 = run_kernel(ReluKernel, &[&a], &a_shape).unwrap();
+    let b1 = run_kernel(ReluKernel, &[&b], &b_shape).unwrap();
 
-    let mm_out = run_kernel(MatMulKernel, &vec![&a1, &b1], &mm_shape).unwrap();
-    let out = run_kernel(AddKernel, &vec![&mm_out, &c], &out_shape).unwrap();
+    let mm_out = run_kernel(MatMulKernel, &[&a1, &b1], &mm_shape).unwrap();
+    let out = run_kernel(AddKernel, &[&mm_out, &c], &out_shape).unwrap();
 
     assert_tensor_eq(&out, &expected);
 }
@@ -617,19 +582,9 @@ fn kernel_integration_matmul_add_relu_pipeline() {
     let d_shape = vec![2, 2];
     let out_shape = vec![2, 2];
 
-    let a_data = vec![
-        1.0, 2.0, 3.0,
-        4.0, 5.0, 6.0,
-    ];
-    let b_data = vec![
-        1.0, 0.0,
-        0.0, 1.0,
-        1.0, 1.0,
-    ];
-    let d_data = vec![
-        -10.0,  0.0,
-         10.0, -1.0,
-    ];
+    let a_data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    let b_data = vec![1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+    let d_data = vec![-10.0, 0.0, 10.0, -1.0];
 
     // Reference expected:
     let mm = matmul_ref(&a_data, &b_data, 2, 3, 2);
@@ -640,9 +595,9 @@ fn kernel_integration_matmul_add_relu_pipeline() {
     let b = Tensor::from_vec(b_shape, b_data).unwrap();
     let d = Tensor::from_vec(d_shape, d_data).unwrap();
 
-    let mm_out = run_kernel(MatMulKernel, &vec![&a, &b], &mm_shape).unwrap();
-    let add_out = run_kernel(AddKernel, &vec![&mm_out, &d], &out_shape).unwrap();
-    let out = run_kernel(ReluKernel, &vec![&add_out], &out_shape).unwrap();
+    let mm_out = run_kernel(MatMulKernel, &[&a, &b], &mm_shape).unwrap();
+    let add_out = run_kernel(AddKernel, &[&mm_out, &d], &out_shape).unwrap();
+    let out = run_kernel(ReluKernel, &[&add_out], &out_shape).unwrap();
 
     assert_tensor_eq(&out, &expected);
 }
