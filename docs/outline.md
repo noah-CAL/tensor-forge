@@ -431,9 +431,34 @@ File: `tests/kernel_tests.rs`
 
 Tests:
 
-- [ ] MatMul correctness test  
-- [ ] Add correctness test  
-- [ ] ReLU correctness test  
+- [X] add_kernel_basic
+- [X] add_kernel_complex
+- [X] add_kernel_input_shape_mismatch
+- [X] add_kernel_invalid_arity_one_input
+- [X] add_kernel_infinity_and_nan_semantics
+- [X] add_kernel_invalid_arity_zero_inputs
+- [X] add_kernel_invalid_arity_three_inputs
+- [X] add_kernel_output_shape_mismatch
+- [X] add_kernel_overflow_f64_to_infinity
+- [X] add_kernel_signed_zero_behavior
+- [X] kernel_integration_matmul_add_relu_pipeline
+- [X] kernel_integration_relu_matmul_add_graph
+- [X] matmul_kernel_chain
+- [X] matmul_kernel_identity_right
+- [X] matmul_kernel_invalid_arity
+- [X] matmul_kernel_basic_rectangular
+- [X] matmul_kernel_output_shape_mismatch
+- [X] matmul_kernel_zeros
+- [X] matmul_kernel_shape_mismatch
+- [X] relu_kernel_all_negative
+- [X] relu_kernel_all_positive
+- [X] relu_kernel_basic
+- [X] relu_kernel_infinity_handling
+- [X] relu_kernel_invalid_arity_two_inputs
+- [X] relu_kernel_invalid_arity_zero_inputs
+- [X] relu_kernel_invalid_output_shape
+- [X] relu_kernel_nan_propagation
+- [X] relu_kernel_preserves_shape
 
 ---
 
