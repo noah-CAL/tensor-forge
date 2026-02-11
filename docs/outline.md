@@ -545,19 +545,19 @@ Goal: Functional compute layer
 
 Checklist:
 
-- [ ] Implement Kernel trait  
+- [X] Implement Kernel trait  
 
-- [ ] Implement MatMulKernel  
+- [X] Write Kernel tests  
 
-- [ ] Implement AddKernel  
+- [X] Implement MatMulKernel  
 
-- [ ] Implement ReluKernel  
+- [X] Implement AddKernel  
+
+- [X] Implement ReluKernel  
 
 - [ ] Implement KernelRegistry  
 
 - [ ] Implement KernelRegistry::default()  
-
-- [ ] Write kernel tests  
 
 Completion criteria:
 
