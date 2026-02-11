@@ -10,11 +10,11 @@ use std::iter::zip;
 
 fn assert_tensor_eq(actual: &Tensor, expected: &[f64]) {
     assert_eq!(
-        actual.data(),
         expected,
-        "tensor data mismatch (len actual={}, expected={})",
+        actual.data(),
+        "tensor data mismatch (len expected={}, actual={})",
+        expected.len(),
         actual.data().len(),
-        expected.len()
     );
 }
 
@@ -364,7 +364,7 @@ fn relu_kernel_nan_propagation() {
     // So we do a per-element check:
     for (got, exp) in zip(out.data(), expected.iter()) {
         if exp.is_nan() {
-            assert!(got.is_nan());
+            assert!(got.is_nan(), "Expected output to carry NAN through ReLU. Got {}", got);
         } else {
             assert_eq!(*got, *exp);
         }
