@@ -555,9 +555,9 @@ Checklist:
 
 - [X] Implement ReluKernel  
 
-- [ ] Implement KernelRegistry  
+- [ ] Write KernelRegistry tests
 
-- [ ] Implement KernelRegistry::default()  
+- [ ] Implement KernelRegistry  
 
 Completion criteria:
 
@@ -585,11 +585,7 @@ Checklist:
 
 - [ ] Write integration tests  
 
-- [ ] Write README  
-
-- [ ] Run cargo clippy  
-
-- [ ] Run cargo fmt  
+- [ ] Finalize README  
 
 - [ ] Final polish  
 
@@ -611,7 +607,7 @@ Project is complete when:
 
 - [ ] Code refactored and cleanly structured
 
-- [ ] 90-95% Functional/Line/Region Coverage
+- [ ] 90-95% Functional, Line, Region, and Branch Coverage metrics
 
 - [ ] Rustdocs are up-to-date
 

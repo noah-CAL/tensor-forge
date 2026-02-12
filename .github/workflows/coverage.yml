@@ -23,7 +23,7 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Generate coverage summary
-        run: cargo llvm-cov --all-features --summary-only > coverage.txt
+        run: cargo +nightly llvm-cov --all-features --branch --summary-only > coverage.txt
 
       - name: Create Shields endpoint JSON
         run: |
