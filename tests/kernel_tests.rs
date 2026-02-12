@@ -483,6 +483,33 @@ fn matmul_kernel_shape_mismatch() {
 }
 
 #[test]
+fn matmul_kernel_invalid_rank_one() {
+    let shape = vec![4];
+    let numel: usize = shape.iter().product();
+
+    let a = Tensor::from_vec(shape.clone(), vec![1.0; numel]).unwrap();
+    let b = Tensor::from_vec(shape.clone(), vec![2.0; numel]).unwrap();
+    let inputs = vec![&a, &b];
+
+    let err = run_kernel(MatMulKernel, &inputs, &shape).unwrap_err();
+    assert!(matches!(err, KernelError::InvalidRank));
+}
+
+#[test]
+fn matmul_kernel_invalid_rank_three() {
+    let shape = vec![4, 4, 4];
+    let numel: usize = shape.iter().product();
+
+    let a = Tensor::from_vec(shape.clone(), vec![1.0; numel]).unwrap();
+    let b = Tensor::from_vec(shape.clone(), vec![2.0; numel]).unwrap();
+    let inputs = vec![&a, &b];
+
+    let err = run_kernel(MatMulKernel, &inputs, &shape).unwrap_err();
+    assert!(matches!(err, KernelError::InvalidRank));
+}
+
+
+#[test]
 fn matmul_kernel_output_shape_mismatch() {
     // Valid A*B would be 2x2, but we ask for 2x3 output => should error
     let a = Tensor::from_vec(vec![2, 3], vec![1.0; 6]).unwrap();

@@ -459,3 +459,33 @@ impl fmt::Display for GraphError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::*;
+    use crate::node::*;
+
+    /// Small unit test for internal implementation of returning IdCollision. This is untestable in
+    /// integration tests because normal methods of generating node collisions are not publicly exposed 
+    /// in the API.
+    ///
+    /// See `tests/graph_tests.rs` for graph integration tests.
+    #[test]
+    fn add_node_rejects_duplicate_id() {
+        let mut g = Graph::new();
+
+        let n1 = Node::new(OpKind::Input, vec![], vec![2, 2]);
+        let n2 = Node {
+            id: n1.id.clone(),
+            op: OpKind::Input,
+            inputs: vec![],
+            shape: vec![2, 2],
+        };
+
+        assert!(g.add_node(n1).is_ok());
+        assert!(matches!(
+            g.add_node(n2).unwrap_err(),
+            GraphError::IdCollision
+        ));
+    }
+}
