@@ -465,8 +465,8 @@ mod tests {
     use crate::graph::*;
     use crate::node::*;
 
-    /// Small unit test for internal implementation of returning IdCollision. This is untestable in
-    /// integration tests because normal methods of generating node collisions are not publicly exposed 
+    /// Small unit test for internal implementation of returning `IdCollision`. This is untestable in
+    /// integration tests because normal methods of generating node collisions are not publicly exposed
     /// in the API.
     ///
     /// See `tests/graph_tests.rs` for graph integration tests.
@@ -476,7 +476,7 @@ mod tests {
 
         let n1 = Node::new(OpKind::Input, vec![], vec![2, 2]);
         let n2 = Node {
-            id: n1.id.clone(),
+            id: n1.id,
             op: OpKind::Input,
             inputs: vec![],
             shape: vec![2, 2],

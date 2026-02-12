@@ -1,0 +1,62 @@
+name: Coverage Badge
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+jobs:
+  badge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Generate coverage summary
+        run: cargo llvm-cov --all-features --summary-only > coverage.txt
+
+      - name: Create Shields endpoint JSON
+        run: |
+          set -euo pipefail
+
+          pct=$(grep '^TOTAL' coverage.txt | awk '{print $10}' | tr -d '%')
+
+          # Determine color based on coverage thresholds
+          if awk "BEGIN {exit !($pct >= 85)}"; then
+            color="green"
+          elif awk "BEGIN {exit !($pct >= 80)}"; then
+            color="yellow"
+          elif awk "BEGIN {exit !($pct >= 70)}"; then
+            color="orange"
+          else
+            color="red"
+          fi
+
+          mkdir -p public
+
+          printf '{"schemaVersion":1,"label":"coverage","message":"%.2f%%","color":"%s"}\n' "$pct" "$color" \
+            > public/coverage-badge.json
+
+      # Publish JSON coverage output to `badges` branch
+      - name: Publish badge JSON (badges branch)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: auto-badges
+          publish_dir: public
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          # Prevent triggering workflows and indicate automation
+          commit_message: "chore(badges): update coverage badge [skip ci]"
+
