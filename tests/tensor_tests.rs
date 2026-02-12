@@ -1,5 +1,7 @@
 use tensor_forge::tensor::{Tensor, TensorError};
 
+mod common;
+
 #[test]
 fn tensor_creation_valid() {
     let shape = vec![4, 4];
@@ -71,4 +73,11 @@ fn tensor_mutability_test() {
     }
     let expected_data: Vec<f64> = (1..17).map(|x| x as f64).collect();
     assert_eq!(tensor.data(), expected_data);
+}
+
+#[test]
+fn kernel_error_display_implemented() {
+    // Test important errors which are most likely to occur
+    let errors = [TensorError::InvalidShape, TensorError::ShapeMismatch];
+    common::validate_error_messages(&errors);
 }

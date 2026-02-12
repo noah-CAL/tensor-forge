@@ -3,6 +3,8 @@ use tensor_forge::tensor::Tensor;
 
 use std::iter::zip;
 
+mod common;
+
 /////////////
 // Helpers //
 /////////////
@@ -626,4 +628,15 @@ fn kernel_integration_matmul_add_relu_pipeline() {
     let out = run_kernel(ReluKernel, &[&add_out], &out_shape).unwrap();
 
     assert_tensor_eq(&out, &expected);
+}
+
+#[test]
+fn kernel_error_display_implemented() {
+    // Test important errors which are most likely to occur
+    let errors = [
+        KernelError::InvalidRank,
+        KernelError::ShapeMismatch,
+        KernelError::InvalidArguments,
+    ];
+    common::validate_error_messages(&errors);
 }

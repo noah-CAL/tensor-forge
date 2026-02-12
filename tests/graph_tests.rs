@@ -3,6 +3,8 @@ use tensor_forge::op::OpKind;
 
 use std::collections::HashSet;
 
+mod common;
+
 #[test]
 fn graph_creation_valid() {
     let graph = Graph::new();
@@ -343,4 +345,16 @@ fn graph_chain_input_relu_matmul_add() {
     // Any missing nodes or any node_id collisions will be detected.
     assert_eq!(node_set.len(), 7);
     assert_eq!(graph.num_nodes(), node_set.len());
+}
+
+#[test]
+fn graph_error_display_implemented() {
+    // Test important errors which are most likely to occur
+    let errors = [
+        GraphError::ShapeMismatch,
+        GraphError::InvalidNodeId,
+        GraphError::IdCollision,
+        GraphError::CycleDetected,
+    ];
+    common::validate_error_messages(&errors);
 }
