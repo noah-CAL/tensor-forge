@@ -508,7 +508,6 @@ fn matmul_kernel_invalid_rank_three() {
     assert!(matches!(err, KernelError::InvalidRank));
 }
 
-
 #[test]
 fn matmul_kernel_output_shape_mismatch() {
     // Valid A*B would be 2x2, but we ask for 2x3 output => should error

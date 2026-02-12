@@ -1,3 +1,5 @@
 [alias]
 lint = "clippy --all-targets --all-features -- -D warnings"
-check = "cargo fmt --all --check && cargo clippy --all-targets --all-features -- -D warnings && cargo check --all-targets --all-features && cargo test --all-features --verbose"
+check_format = "fmt --all --check"
+check_targets = "check --all-targets --all-features"
+check_test = "test --all-features --verbose"

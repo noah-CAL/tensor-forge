@@ -611,6 +611,8 @@ Project is complete when:
 
 - [ ] Code refactored and cleanly structured
 
+- [ ] 90-95% Functional/Line/Region Coverage
+
 - [ ] Rustdocs are up-to-date
 
 - [ ] Project published to crates.io  

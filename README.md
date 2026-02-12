@@ -2,7 +2,9 @@
 # Tensor-Forge
 <div align="center">
 
-<!-- ![Deps.rs Crate Dependencies (latest)](https://img.shields.io/deps-rs/:crate/latest) -->
+<!--[![Crates.io](https://img.shields.io/crates/v/tensor-forge.svg)]-->
+<!-- [![Docs.rs](https://docs.rs/tensor-forge/badge.svg)] -->
+![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/noah-CAL/tensor-forge/auto-badges/coverage-badge.json)
 [![Build Status](https://github.com/noah-CAL/tensor-forge/actions/workflows/rust.yml/badge.svg)](https://github.com/noah-CAL/tensor-forge/actions/workflows/rust.yml)
 ![GitHub License](https://img.shields.io/github/license/noah-CAL/tensor-forge)
 

@@ -19,7 +19,7 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt, clippy, llvm-tools-preview
 
       - name: Cache
         uses: actions/cache@v4
@@ -39,6 +39,9 @@ jobs:
       - name: Check
         run: cargo check --all-targets --all-features
 
-      - name: Test
-        run: cargo test --all-features --verbose
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
+      # cargo llvm-cov runs tests and fails the job if coverage < 80%
+      - name: Coverage gate (lines >= 80%)
+        run: cargo llvm-cov --all-features --fail-under-lines 80
