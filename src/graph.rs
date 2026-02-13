@@ -99,8 +99,10 @@ impl Graph {
         if self.nodes.contains_key(&node_id) {
             return Err(GraphError::IdCollision);
         }
+        if node.op == OpKind::Input {
+            self.inputs.push(node_id);
+        }
         self.nodes.insert(node_id, node);
-        self.inputs.push(node_id);
         Ok(node_id)
     }
 
@@ -322,10 +324,31 @@ impl Graph {
         self.nodes.values().len()
     }
 
-    /// Returns the list of nodes recorded as inputs.
+    /// Returns the list of nodes.
     ///
-    /// Note: in the current implementation, *every* inserted node is appended to this list
+    /// Every inserted node is appended to this list
     /// (including op nodes created by [`Graph::add`], [`Graph::matmul`], and [`Graph::relu`]).
+    ///
+    /// # Examples
+    /// ```
+    /// # use std::collections::HashSet;
+    /// # use tensor_forge::graph::Graph;
+    /// let mut g = Graph::new();
+    /// let a = g.input_node(vec![2, 3]);
+    /// let b = g.input_node(vec![2, 3]);
+    /// let c = g.add(a, b).unwrap();
+    ///
+    /// // Includes both inputs and the derived node.
+    /// for node in g.nodes() {
+    ///     assert!([a, b, c].contains(&node.id));
+    /// }
+    /// 
+    /// ```
+    pub fn nodes(&self) -> impl Iterator<Item=&Node> {
+        self.nodes.values()
+    }
+
+    /// Returns the list of nodes recorded as inputs.
     ///
     /// # Examples
     /// ```
@@ -335,8 +358,8 @@ impl Graph {
     /// let b = g.input_node(vec![2, 3]);
     /// let c = g.add(a, b).unwrap();
     ///
-    /// // Currently includes both inputs and the derived node.
-    /// assert_eq!(g.inputs(), &[a, b, c]);
+    /// // Only includes both inputs.
+    /// assert_eq!(g.inputs(), &[a, b]);
     /// ```
     #[must_use]
     pub fn inputs(&self) -> &[NodeId] {

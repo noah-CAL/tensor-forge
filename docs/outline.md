@@ -187,6 +187,10 @@ pub struct Graph {
 
 `nodes` stores graph nodes indexed by `NodeId` for O(1) lookup.
 
+`inputs` stores all input nodes to the graph.
+
+`outputs` stores all nodes designated as outputs.
+
 Execution order is determined via deterministic topological sorting of the graph.
 
 Graph is append-only: nodes may be added but never removed or mutated in a way that invalidates dependency relationships.
@@ -216,6 +220,8 @@ This guarantees:
 `Graph::node(id: NodeId) -> Result<&Node, GraphError>`
 
 `Graph::num_nodes() -> usize`
+
+`Graph::nodes() -> impl Iterator<Item=&Node>`
 
 `Graph::inputs(&self) -> &[NodeId]`
 
