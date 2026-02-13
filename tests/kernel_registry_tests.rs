@@ -9,9 +9,9 @@ use tensor_forge::registry::KernelRegistry;
 #[test]
 fn registry_get_missing_returns_none() {
     let reg = KernelRegistry::new();
-    assert!(reg.get(OpKind::Add).is_none());
-    assert!(reg.get(OpKind::MatMul).is_none());
-    assert!(reg.get(OpKind::ReLU).is_none());
+    assert!(reg.get(&OpKind::Add).is_none());
+    assert!(reg.get(&OpKind::MatMul).is_none());
+    assert!(reg.get(&OpKind::ReLU).is_none());
 }
 
 #[test]
@@ -20,7 +20,7 @@ fn registry_register_then_get_returns_kernel() {
 
     assert!(reg.register(OpKind::Add, Box::new(AddKernel)).is_none());
 
-    let k = reg.get(OpKind::Add).expect("Should return Add kernel.");
+    let k = reg.get(&OpKind::Add).expect("Should return Add kernel.");
 
     // Ensure we can call through the trait object (object safety / dyn dispatch works).
     let shape = vec![1, 4];
@@ -40,12 +40,12 @@ fn registry_default_has_expected_kernels() {
     let reg = KernelRegistry::default();
 
     // Default must register MatMul, Add, ReLU.
-    assert!(reg.get(OpKind::MatMul).is_some());
-    assert!(reg.get(OpKind::Add).is_some());
-    assert!(reg.get(OpKind::ReLU).is_some());
+    assert!(reg.get(&OpKind::MatMul).is_some());
+    assert!(reg.get(&OpKind::Add).is_some());
+    assert!(reg.get(&OpKind::ReLU).is_some());
 
     // Input is a graph-level op. Registry does not provide a compute kernel for it.
-    assert!(reg.get(OpKind::Input).is_none());
+    assert!(reg.get(&OpKind::Input).is_none());
 }
 
 #[test]
@@ -58,9 +58,9 @@ fn registry_can_register_multiple_ops() {
     assert!(reg.register(OpKind::Add, Box::new(AddKernel)).is_none());
     assert!(reg.register(OpKind::ReLU, Box::new(ReluKernel)).is_none());
 
-    assert!(reg.get(OpKind::MatMul).is_some());
-    assert!(reg.get(OpKind::Add).is_some());
-    assert!(reg.get(OpKind::ReLU).is_some());
+    assert!(reg.get(&OpKind::MatMul).is_some());
+    assert!(reg.get(&OpKind::Add).is_some());
+    assert!(reg.get(&OpKind::ReLU).is_some());
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn registry_dispatch_matmul_add_relu_works() {
     let b = Tensor::from_vec(vec![3, 2], vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0])
         .expect("Tensor creation should not fail");
     let mut mm_out = Tensor::zeros(vec![2, 2]).expect("Tensor creation should not fail");
-    reg.get(OpKind::MatMul)
+    reg.get(&OpKind::MatMul)
         .unwrap()
         .compute(&[&a, &b], &mut mm_out)
         .expect("MatMul operation should succeed");
@@ -83,7 +83,7 @@ fn registry_dispatch_matmul_add_relu_works() {
     let d = Tensor::from_vec(vec![2, 2], vec![1.0, -100.0, 2.0, -200.0])
         .expect("Tensor creation should not fail");
     let mut add_out = Tensor::zeros(vec![2, 2]).expect("Tensor creation should not fail");
-    reg.get(OpKind::Add)
+    reg.get(&OpKind::Add)
         .unwrap()
         .compute(&[&mm_out, &d], &mut add_out)
         .expect("Addition operation should succeed");
@@ -91,7 +91,7 @@ fn registry_dispatch_matmul_add_relu_works() {
 
     // ReLU: elementwise max(0, x)
     let mut relu_out = Tensor::zeros(vec![2, 2]).unwrap();
-    reg.get(OpKind::ReLU)
+    reg.get(&OpKind::ReLU)
         .unwrap()
         .compute(&[&add_out], &mut relu_out)
         .expect("ReLU operation should succeed");
@@ -116,7 +116,7 @@ fn registry_overwrite_returns_old() {
         .expect("Tensor creation should not fail");
     let mut out = Tensor::zeros(vec![2, 2]).expect("Tensor creation should not fail");
 
-    reg.get(OpKind::Add)
+    reg.get(&OpKind::Add)
         .unwrap()
         .compute(&[&a, &b], &mut out)
         .unwrap();
@@ -132,7 +132,7 @@ fn registry_overwrite_returns_old() {
         .expect("Tensor creation should not fail");
     let mut out2 = Tensor::zeros(vec![1, 4]).expect("Tensor creation should not fail");
 
-    reg.get(OpKind::Add)
+    reg.get(&OpKind::Add)
         .unwrap()
         .compute(&[&x, &y], &mut out2)
         .unwrap();
