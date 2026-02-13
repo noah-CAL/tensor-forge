@@ -10,3 +10,4 @@ pub mod kernel;
 pub mod node;
 pub mod op;
 pub mod tensor;
+pub mod registry;
