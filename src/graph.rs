@@ -2,7 +2,7 @@
 
 use crate::node::{Node, NodeId};
 use crate::op::OpKind;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
 /// Error types for [`Graph`] construction and validation.
@@ -91,6 +91,7 @@ impl Default for Graph {
 }
 
 impl Graph {
+    /// Private helper method for inserting new node into the graph.
     fn add_node(&mut self, node: Node) -> Result<NodeId, GraphError> {
         let node_id = node.id;
         // Each node is generated to be unique in monotonically increasing order. Collisions
@@ -360,7 +361,7 @@ impl Graph {
         &self.outputs
     }
 
-    /// Computes a deterministic topological execution order of all nodes in the graph.
+    /// Computes a deterministic topological execution order (Kahn's Algorithm) of all nodes in the graph.
     ///
     /// Topological ordering guarantees that every node appears *after* all of its
     /// dependencies. This ordering is required for correct execution of the compute graph,
@@ -393,7 +394,8 @@ impl Graph {
     ///
     /// # Errors
     ///
-    /// Returns [`GraphError::CycleDetected`] if the graph contains a cycle.
+    /// Returns [`GraphError::CycleDetected`] if the graph contains a cycle. Assuming normal API
+    /// use, Graph methods will not allow cycle creation to ever occur.
     ///
     /// Cycles violate compute graph semantics because no valid execution order exists.
     ///
@@ -409,7 +411,7 @@ impl Graph {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```
     /// # use tensor_forge::graph::Graph;
     /// let mut g = Graph::new();
     ///
@@ -425,7 +427,82 @@ impl Graph {
     /// assert!(pos(b) < pos(c));
     /// ```
     pub fn topo_sort(&self) -> Result<Vec<NodeId>, GraphError> {
-        Err(GraphError::ShapeMismatch)
+        // indegree[v] = number of incoming edges to v (i.e., number of deps v has)
+        // outgoing[u] = list of nodes that depend on u (edges u -> v)
+        let n = self.nodes.len();
+        let mut indegree: HashMap<NodeId, usize> = HashMap::with_capacity(n);
+        let mut outgoing: HashMap<NodeId, Vec<NodeId>> = HashMap::with_capacity(n);
+
+        // Initialize all nodes with indegree 0 so we can safely increment later.
+        for &id in self.nodes.keys() {
+            indegree.insert(id, 0);
+        }
+
+        // Build indegree and outgoing adjacency.
+        for (&id, node) in &self.nodes {
+            for &dep in &node.inputs {
+                // If the graph was constructed via public API this can't happen,
+                // but it keeps topo_sort robust against malformed graphs.
+                if !self.nodes.contains_key(&dep) {
+                    return Err(GraphError::InvalidNodeId);
+                }
+                match indegree.get_mut(&id) {
+                    Some(deg) => *deg += 1,
+                    None => return Err(GraphError::InvalidNodeId),
+                }
+                outgoing.entry(dep).or_default().push(id);
+            }
+        }
+
+        // Deterministic ready set: always pop the smallest NodeId.
+        let mut ready: BTreeSet<NodeId> = indegree
+            .iter()
+            .filter_map(|(&id, &deg)| if deg == 0 { Some(id) } else { None })
+            .collect();
+
+        let mut order: Vec<NodeId> = Vec::with_capacity(n);
+
+        while let Some(&id) = ready.iter().next() {
+            ready.remove(&id);
+            order.push(id);
+
+            if let Some(dependents) = outgoing.get(&id) {
+                for &v in dependents {
+                    let Some(deg) = indegree.get_mut(&v) else {
+                        return Err(GraphError::InvalidNodeId);
+                    };
+
+                    // v had an incoming edge from id; remove it.
+                    if *deg == 0 {
+                        return Err(GraphError::CycleDetected);
+                    }
+                    *deg -= 1;
+
+                    if *deg == 0 {
+                        ready.insert(v);
+                    }
+                }
+            }
+        }
+
+        if order.len() != n {
+            // Some nodes never reached indegree 0 => cycle (or unreachable due to malformed indegrees).
+            return Err(GraphError::CycleDetected);
+        }
+
+        Ok(order)
+    }
+
+    /// Private helper method that allows inserting duplicate node IDs or creating cycles for
+    /// stress-testing the API.
+    ///
+    /// This should not be used in any code other than the unit tests in `graph.rs`.
+    #[cfg(test)]
+    fn add_node_unsafe(&mut self, node: Node) -> NodeId {
+        let node_id = node.id;
+        self.nodes.insert(node_id, node);
+        self.inputs.push(node_id);
+        node_id
     }
 }
 
@@ -487,5 +564,44 @@ mod tests {
             g.add_node(n2).unwrap_err(),
             GraphError::IdCollision
         ));
+    }
+
+    /// Public API only allows appending to the graph via forward-referencing only. As such,
+    /// there is no way of generating a cycle via the public API.
+    ///
+    /// See `tests/graph_tests.rs` for graph integration tests.
+    #[test]
+    fn topo_sort_rejects_cycles() {
+        let mut graph = Graph::new();
+
+        // Create two nodes first (as inputs), then manually wire them into a cycle by
+        // constructing new Nodes with explicit inputs and inserting via add_node().
+        //
+        // This pattern is contained to unit tests (integration tests can’t access add_node).
+
+        let a = graph.input_node(vec![1, 1]);
+        let b = graph.input_node(vec![1, 1]);
+
+        // Overwrite the existing nodes in the graph with cyclic dependencies.
+        // Because nodes are stored by NodeId, we can replace them by inserting a Node
+        // with the same id.
+        let c = Node {
+            id: a,
+            op: OpKind::ReLU,
+            inputs: vec![b],
+            shape: vec![1, 1],
+        };
+        let d = Node {
+            id: b,
+            op: OpKind::ReLU,
+            inputs: vec![a],
+            shape: vec![1, 1],
+        };
+
+        graph.add_node_unsafe(c);
+        graph.add_node_unsafe(d);
+
+        let err = graph.topo_sort().unwrap_err();
+        assert!(matches!(err, GraphError::CycleDetected));
     }
 }

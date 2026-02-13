@@ -3,16 +3,16 @@
 use crate::op::OpKind;
 
 /// Represents the `NodeId` for a specific node in the graph.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct NodeId(usize);
 
 /// Struct for a graph node in the ML operations sequence.
 ///
 /// They are constructed
-/// automatically by interacting with operations in a [`Graph`] struct.
+/// automatically by interacting with operations in a [`crate::graph::Graph`] struct.
 ///
 /// Each node represents a particular action as determined by the
-/// [`Node.op`] field (See [`OpKind`]).
+/// [`OpKind`] field.
 ///
 /// # Examples
 /// #TODO

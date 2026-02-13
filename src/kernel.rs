@@ -4,7 +4,7 @@
 //! results into a pre-allocated output [`Tensor`]. Kernels do not allocate output storage and
 //! are expected to validate basic argument invariants (arity, shape, rank) before any compute.
 //!
-//! To allocate [`Tensors`], see the [`Graph`] API.
+//! To allocate [`Tensor`]s, see the [`crate::graph::Graph`] API.
 
 use crate::tensor::Tensor;
 use std::fmt;

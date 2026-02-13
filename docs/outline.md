@@ -420,8 +420,18 @@ Tests:
 - [X] graph_matmul_invalid_dimensions
 - [X] graph_chained_matmul
 - [X] graph_chain_full_implementation
-- [ ] graph_topo_sort
-- [ ] graph_topo_sort_determinism
+
+---
+
+## Topological Sort Tests
+
+File: `tests/topo_sort_tests.rs`
+
+Tests:
+- [X] test topo_sort_is_deterministic_for_independent_nodes
+- [X] test topo_sort_diamond_orders_all_dependencies_first
+- [X] test topo_sort_linear_orders_dependencies_first
+- [X] test topo_sort_is_deterministic_for_multiple_ready_ops
 
 ---
 
