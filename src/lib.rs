@@ -9,4 +9,5 @@ pub mod graph;
 pub mod kernel;
 pub mod node;
 pub mod op;
+pub mod registry;
 pub mod tensor;

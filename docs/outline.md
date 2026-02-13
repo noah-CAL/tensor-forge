@@ -303,9 +303,11 @@ Data structure:
 
 `KernelRegistry::new() -> KernelRegistry`
 
-`KernelRegistry::register(op: OpKind, kernel: Box<dyn Kernel>)`
+`KernelRegistry::register(op: OpKind, kernel: Box<dyn Kernel>) -> Option<Box<dyn Kernel>>`
 
 `KernelRegistry::get(op: OpKind) -> Option<&dyn Kernel>`
+
+> `KernelRegistry::register` swaps and returns an old mapping if it exists. 
 
 ---
 
@@ -472,6 +474,20 @@ Tests:
 
 ---
 
+## Kernel Registry Tests
+
+File: `tests/kernel_registry_tests.rs`
+
+Tests:
+
+- [X] registry_can_register_multiple_ops
+- [X] registry_default_has_expected_kernels
+- [X] registry_dispatch_matmul_add_relu_works
+- [X] registry_overwrite_returns_old
+- [X] registry_get_missing_returns_none
+- [X] registry_register_then_get_returns_kernel
+
+---
 ## Executor Tests
 
 File: `tests/integration_tests.rs`
@@ -565,13 +581,13 @@ Checklist:
 
 - [X] Implement ReluKernel  
 
-- [ ] Write KernelRegistry tests
+- [X] Write KernelRegistry tests
 
-- [ ] Implement KernelRegistry  
+- [X] Implement KernelRegistry  
 
 Completion criteria:
 
-Kernels produce correct outputs and tests pass.
+✅ kernels produce correct outputs and tests pass.
 
 ---
 
