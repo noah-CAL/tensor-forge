@@ -4,7 +4,7 @@
 ///
 /// # Examples
 /// # TODO add examples
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum OpKind {
     /// Defines node as an input.  
     Input,
