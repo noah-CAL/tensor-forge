@@ -47,4 +47,3 @@ pub fn matmul_ref(a: &[f64], b: &[f64], m: usize, k: usize, n: usize) -> Vec<f64
     }
     c
 }
-
