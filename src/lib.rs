@@ -48,6 +48,11 @@
 //! assert_eq!(output_tensor.data().len(), expected.data().len());
 //! assert_eq!(output_tensor.data(), expected.data());
 //! ```
+//! See the `examples/` directory for larger runnable examples, including:
+//! - `add_graph.rs`              # introductory example
+//! - `branching_graph.rs`        # complex chain example with `Add`, `ReLU`, `MatMul`
+//! - `feedforward_neural_net.rs` # programmatic neural network generation
+//! - `custom_kernel.rs`          # defining custom kernels
 //!
 //! # Module overview
 //!
