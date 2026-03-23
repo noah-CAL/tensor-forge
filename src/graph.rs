@@ -2,7 +2,7 @@
 
 use crate::node::{Node, NodeId};
 use crate::op::OpKind;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt;
 
 /// Error types for [`Graph`] construction and validation.
@@ -81,7 +81,7 @@ pub enum GraphError {
 pub struct Graph {
     nodes: HashMap<NodeId, Node>,
     inputs: Vec<NodeId>,
-    outputs: Vec<NodeId>,
+    outputs: HashSet<NodeId>,
 }
 
 impl Default for Graph {
@@ -121,7 +121,7 @@ impl Graph {
         Graph {
             nodes: HashMap::new(),
             inputs: Vec::new(),
-            outputs: Vec::new(),
+            outputs: HashSet::new(),
         }
     }
 
@@ -267,10 +267,12 @@ impl Graph {
     /// # use tensor_forge::graph::{Graph, GraphError};
     /// let mut g = Graph::new();
     /// let x = g.input_node(vec![2, 3]);
-    /// let y = g.relu(x).unwrap();
+    /// let y = g.relu(x).expect("No error should occur in the construction of this ReLU");
     ///
-    /// g.set_output_node(y).unwrap();
-    /// assert_eq!(g.outputs(), &[y]);
+    /// assert!(g.outputs().is_empty());
+    /// g.set_output_node(y).expect("We are passing a valid output node");
+    /// assert_eq!(g.outputs().contains(&y), true);
+    /// assert_eq!(g.outputs().len(), 1);
     ///
     /// // A NodeId from another graph is invalid
     /// let mut other = Graph::new();
@@ -279,7 +281,7 @@ impl Graph {
     /// ```
     pub fn set_output_node(&mut self, node: NodeId) -> Result<(), GraphError> {
         let node = self.node(node)?;
-        self.outputs.push(node.id);
+        self.outputs.insert(node.id);
         Ok(())
     }
 
@@ -342,9 +344,9 @@ impl Graph {
     /// for node in g.nodes() {
     ///     assert!([a, b, c].contains(&node.id));
     /// }
-    /// 
+    ///
     /// ```
-    pub fn nodes(&self) -> impl Iterator<Item=&Node> {
+    pub fn nodes(&self) -> impl Iterator<Item = &Node> {
         self.nodes.values()
     }
 
@@ -373,14 +375,15 @@ impl Graph {
     /// # use tensor_forge::graph::Graph;
     /// let mut g = Graph::new();
     /// let x = g.input_node(vec![2, 3]);
-    /// let y = g.relu(x).unwrap();
+    /// let y = g.relu(x).expect("No error should occur in the construction of this ReLU");
     ///
     /// assert!(g.outputs().is_empty());
-    /// g.set_output_node(y).unwrap();
-    /// assert_eq!(g.outputs(), &[y]);
+    /// g.set_output_node(y).expect("We are passing a valid output node");
+    /// assert!(g.outputs().contains(&y));
+    /// assert_eq!(g.outputs().len(), 1);
     /// ```
     #[must_use]
-    pub fn outputs(&self) -> &[NodeId] {
+    pub fn outputs(&self) -> &HashSet<NodeId> {
         &self.outputs
     }
 

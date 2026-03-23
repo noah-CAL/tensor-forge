@@ -125,7 +125,7 @@ impl KernelRegistry {
     ///
     /// // Add conflicting mapping
     /// let old_kernel = reg.register(OpKind::Add, Box::new(MatMulKernel));
-    /// assert!(old_kernel.is_some());            // returns old AddKernel Mapping.
+    /// assert!(old_kernel.is_some());             // returns old AddKernel Mapping.
     /// assert!(reg.get(&OpKind::Add).is_some());  // `OpKind::Add` now maps to MatMulKernel.
     ///
     /// ```

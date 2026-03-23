@@ -432,11 +432,6 @@ fn topo_sort_diamond_orders_all_dependencies_first() {
 
 #[test]
 fn topo_sort_is_deterministic_for_independent_nodes() {
-    // If there are multiple ready nodes (no deps), your docs say:
-    // "Nodes with zero remaining dependencies are processed in ascending NodeId order."
-    //
-    // Easiest way to exercise this without relying on HashMap iteration:
-    // create 3 independent inputs and ensure topo_sort returns them in ascending NodeId.
     let mut g = Graph::new();
 
     let n0 = g.input_node(vec![1, 1]);
@@ -484,7 +479,7 @@ fn topo_sort_is_deterministic_for_multiple_ready_ops() {
     let pr1 = pos(&order, r1);
 
     // We don't assume which relu corresponds to smaller NodeId beyond "ascending NodeId".
-    // Since NodeId is monotonic in your implementation, r0 was created before r1, so:
+    // Since NodeId is monotonic, r0 was created before r1, so:
     assert!(
         pr0 < pr1,
         "ready ops must be processed in ascending NodeId order"

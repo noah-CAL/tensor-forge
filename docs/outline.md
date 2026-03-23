@@ -374,7 +374,7 @@ This ensures correct dependency resolution and reproducible execution.
 
 `Executor::new(registry: KernelRegistry) -> Executor`
 
-`Executor::execute(&self, graph: &Graph, inputs: &[Tensor]) -> Result<Vec<Tensor>, Error>`
+`Executor::execute(&self, graph: &Graph, inputs: &[Tensor]) -> Result<HashMap<NodeId, Tensor>, ExecutionError>`
 
 Input tensors are provided in the same order as `Graph::input()` calls (i.e., the order of `graph.inputs`). Mismatched count is `InvalidInput`.
 
@@ -494,18 +494,41 @@ Tests:
 - [X] registry_register_then_get_returns_kernel
 
 ---
+
 ## Executor Tests
 
 File: `tests/integration_tests.rs`
 
 Tests:
-
-- [ ] simple relu execution test  
-- [ ] add graph execution test  
-- [ ] matmul graph execution test  
-- [ ] multi-op graph test:
-- [ ] matmul → add → relu
-- [ ] Verify final output values.
+- [X] executor_add_chain
+- [X] executor_chain_longer_than_one_op
+- [X] executor_add_graph_execution_bindings_order_independent
+- [X] executor_chain_relu_matmul_add
+- [X] executor_feedforward_neural_network
+- [X] executor_matmul_then_add_then_relu_more_shapes
+- [X] executor_multiple_outputs
+- [X] executor_multi_op_matmul_add_relu_execution_bindings
+- [X] executor_matmul_graph_execution_bindings
+- [X] executor_missing_irrelevant_input
+- [X] executor_fanout_diamond_graph_shared_dependency
+- [X] executor_rejects_missing_input_binding
+- [X] executor_rejects_missing_kernel
+- [X] executor_reports_kernel_failure_with_node_context
+- [X] executor_multiple_outputs_from_disjoint_subgraphs
+- [X] executor_rejects_binding_to_non_input_node
+- [X] executor_same_tensor_used_twice_add_x_x
+- [X] executor_simple_relu_execution_bindings
+- [X] executor_unused_nodes_do_not_break_execution
+- [X] executor_rejects_duplicate_binding
+- [X] executor_rejects_extra_binding_for_nonexistent_node_in_graph
+- [X] executor_rejects_input_shape_mismatch
+- [X] executor_rejects_invalid_binding_node_foreign_graph
+- [X] executor_output_is_input_identity_graph
+- [X] executor_rejects_binding_node_that_exists_but_is_not_an_input
+- [X] executor_diamond_graph
+- [X] executor_rejects_graph_with_no_outputs
+- [X] executor_output_node_set_twice_returns_one_output
+- [X] Verify final output values.
 
 ---
 
@@ -515,11 +538,13 @@ Before publishing, verify:
 
 `cargo test`
 
-`cargo fmt`
+- [X] `cargo fmt --all --check`
 
-`cargo clippy`
+- [X] `cargo clippy --all-targets --all-features -- -D warnings`
 
-`cargo doc --no-deps`
+- [X] `cargo check --all-targets --all-features`
+
+- [X] `cargo +nightly llvm-cov --all-features --branch --summary-only` (coverage report passes >90%)
 
 Additional requirements:
 
@@ -603,19 +628,21 @@ Goal: Full runtime execution
 
 Checklist:
 
-- [ ] Implement graph topological sort  
+- [X] Implement graph topological sort  
 
-- [ ] Implement Executor  
+- [X] Implement Executor  
 
-- [ ] Implement graph execution loop  
+- [X] Implement graph execution loop  
 
-- [ ] Implement tensor storage allocation  
+- [X] Implement tensor storage allocation  
 
-- [ ] Implement kernel dispatch  
+- [X] Implement kernel dispatch  
 
-- [ ] Implement output handling  
+- [X] Implement output handling  
 
-- [ ] Write integration tests  
+- [X] Write integration tests  
+
+- [X] Example usage suite in `examples/`
 
 - [ ] Finalize README  
 

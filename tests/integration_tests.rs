@@ -510,7 +510,7 @@ fn executor_unused_nodes_do_not_break_execution() {
 #[test]
 fn executor_rejects_graph_with_no_outputs() {
     // Graph has an input but no outputs designated.
-    // With your current executor, this will run and then fail when collecting outputs
+    // This will run and then fail when collecting outputs
     let mut g = Graph::new();
     let x_id = g.input_node(vec![1, 1]);
 
@@ -525,7 +525,7 @@ fn executor_rejects_graph_with_no_outputs() {
 
 #[test]
 fn executor_rejects_extra_binding_for_nonexistent_node_in_graph() {
-    // Like your "foreign graph" test, but tighter: graph has one input x, output x.
+    // Like the "foreign graph" test, but tighter: graph has one input x, output x.
     // Provide x plus another binding from a different graph.
     let mut g = Graph::new();
     let x_id = g.input_node(vec![1, 1]);
@@ -662,7 +662,7 @@ fn executor_multiple_outputs_from_disjoint_subgraphs() {
 
 #[test]
 fn executor_matmul_then_add_then_relu_more_shapes() {
-    // A slightly different shape combo than your existing test, to catch indexing bugs:
+    // A slightly different shape combo than the existing test, to catch indexing bugs:
     // A: 1x3, B: 3x4 => mm: 1x4, then add with C: 1x4, then relu
     let mut g = Graph::new();
     let a_id = g.input_node(vec![1, 3]);
