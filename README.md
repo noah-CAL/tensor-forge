@@ -1,8 +1,8 @@
 # tensor-forge
 <div align="center">
 
-<!--[![Crates.io](https://img.shields.io/crates/v/tensor-forge.svg)](https://crates.io/crates/tensor-forge)-->
-<!--[![Docs.rs](https://docs.rs/tensor-forge/badge.svg)](https://docs.rs/tensor-forge)-->
+[![Crates.io](https://img.shields.io/crates/v/tensor-forge.svg)](https://crates.io/crates/tensor-forge)
+[![Docs.rs](https://docs.rs/tensor-forge/badge.svg)](https://docs.rs/tensor-forge)
 ![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/noah-CAL/tensor-forge/auto-badges/coverage-badge.json)
 [![Build Status](https://github.com/noah-CAL/tensor-forge/actions/workflows/rust.yml/badge.svg)](https://github.com/noah-CAL/tensor-forge/actions/workflows/rust.yml)
 ![GitHub License](https://img.shields.io/github/license/noah-CAL/tensor-forge)

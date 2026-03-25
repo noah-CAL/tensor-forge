@@ -548,9 +548,9 @@ Before publishing, verify:
 
 Additional requirements:
 
-- [ ] Github Actions and README.md buttons that verify the above requirements
+- [X] Github Actions and README.md buttons that verify the above requirements
 
-- [ ] Code builds with `#![deny(clippy::all)]` and `#![deny(missing_docs)]`
+- [X] Code builds with `#![deny(clippy::all)]` and `#![deny(missing_docs)]`
 
 All must succeed with no warnings.
 
@@ -644,9 +644,9 @@ Checklist:
 
 - [X] Example usage suite in `examples/`
 
-- [ ] Finalize README  
+- [X] Finalize README  
 
-- [ ] Final polish  
+- [X] Final polish  
 
 Completion criteria:
 
@@ -658,18 +658,12 @@ End-to-end graph execution works correctly.
 
 Project is complete when:
 
-- [ ] All tests pass  
-
-- [ ] Code compiles cleanly  
-
-- [ ] Well-documented README exists  
-
-- [ ] Code refactored and cleanly structured
-
-- [ ] 90-95% Functional, Line, Region, and Branch Coverage metrics
-
-- [ ] Rustdocs are up-to-date
-
-- [ ] Project published to crates.io  
+- [X] All tests pass  
+- [X] Code compiles cleanly  
+- [X] Well-documented README exists  
+- [X] Code refactored and cleanly structured
+- [X] 90-95% Functional, Line, Region, and Branch Coverage metrics
+- [X] Rustdocs are up-to-date
+- [X] Project published to crates.io  
 
 ---
