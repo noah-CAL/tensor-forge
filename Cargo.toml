@@ -1,6 +1,6 @@
 [package]
 name = "tensor-forge"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 authors = ["Noah Sedlik"]
 description = "A minimal deterministic compute graph runtime for tensor operations in Rust."

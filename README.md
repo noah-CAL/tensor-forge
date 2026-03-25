@@ -34,7 +34,7 @@ Add this to your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-tensor-forge = "0.1"
+tensor-forge = "1.0.0"
 ```
 
 In Rust code, import the crate as:
