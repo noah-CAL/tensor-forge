@@ -2,6 +2,19 @@
 name = "tensor-forge"
 version = "0.1.0"
 edition = "2024"
+authors = ["Noah Sedlik"]
+description = "A minimal deterministic compute graph runtime for tensor operations in Rust."
+readme = "README.md"
+repository = "https://github.com/noah-CAL/tensor-forge"
+homepage = "https://github.com/noah-CAL/tensor-forge"
+license = "MIT"
+documentation = "https://docs.rs/tensor_forge"
+keywords = ["tensor", "compute-graph", "runtime", "ml", "graph"]
+categories = ["algorithms", "data-structures", "science"]
+exclude = [".*"]
 
 [dependencies]
+
+[badges]
+maintenance = { status = "passively-maintained" }
 
